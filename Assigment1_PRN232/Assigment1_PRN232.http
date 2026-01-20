@@ -1,0 +1,6 @@
+@Assigment1_PRN232_HostAddress = http://localhost:5276
+
+GET {{Assigment1_PRN232_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
