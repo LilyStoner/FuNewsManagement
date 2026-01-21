@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Assigment1_PRN232.Repositories
+namespace Assigment1_PRN232_BE.Repositories
 {
     public class NewsRepository : INewsRepository
     {
@@ -16,12 +16,16 @@ namespace Assigment1_PRN232.Repositories
 
         public async Task<IEnumerable<NewsArticle>> GetAllAsync()
         {
-            return await _context.NewsArticles.Include(n => n.Category).Include(n => n.Tags).ToListAsync();
+            return await _context.NewsArticles
+                .Include(n => n.Category)
+                .Include(n => n.Tags)
+                .Include(n => n.CreatedBy)
+                .ToListAsync();
         }
 
         public async Task<NewsArticle?> GetByIdAsync(string id)
         {
-            return await _context.NewsArticles.Include(n => n.Category).Include(n => n.Tags)
+            return await _context.NewsArticles.Include(n => n.Category).Include(n => n.Tags).Include(n => n.CreatedBy)
                 .FirstOrDefaultAsync(n => n.NewsArticleId == id);
         }
 
@@ -39,9 +43,13 @@ namespace Assigment1_PRN232.Repositories
 
         public async Task DeleteAsync(string id)
         {
-            var entity = await _context.NewsArticles.FindAsync(id);
+            var entity = await _context.NewsArticles.Include(n => n.Tags).FirstOrDefaultAsync(n => n.NewsArticleId == id);
             if (entity != null)
             {
+                // remove relations in join table (NewsTag)
+                entity.Tags.Clear();
+                await _context.SaveChangesAsync();
+
                 _context.NewsArticles.Remove(entity);
                 await _context.SaveChangesAsync();
             }

@@ -1,6 +1,7 @@
+using Assigment1_PRN232;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Assigment1_PRN232.Controllers
+namespace Assigment1_PRN232_BE.Controllers
 {
     [ApiController]
     [Route("[controller]")]

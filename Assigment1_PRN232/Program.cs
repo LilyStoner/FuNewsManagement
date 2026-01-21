@@ -1,15 +1,25 @@
 using Assigment1_PRN232_BE.Models;
-using Assigment1_PRN232.Repositories;
-using Assigment1_PRN232.Services;
+using Assigment1_PRN232_BE.Repositories;
+using Assigment1_PRN232_BE.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OData.ModelBuilder;
 using Microsoft.AspNetCore.OData;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers().AddOData(options =>
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.MaxDepth = 64;
+    })
+    .AddOData(options =>
 {
     var odataBuilder = new ODataConventionModelBuilder();
     odataBuilder.EntitySet<NewsArticle>("News");
@@ -23,6 +33,45 @@ builder.Services.AddDbContext<FunewsManagementContext>(options =>
 // Repositories and services
 builder.Services.AddScoped<INewsRepository, NewsRepository>();
 builder.Services.AddScoped<INewsService, NewsService>();
+
+// JWT Authentication
+var jwtSection = builder.Configuration.GetSection("Jwt");
+var key = jwtSection.GetValue<string>("Key");
+var issuer = jwtSection.GetValue<string>("Issuer");
+var audience = jwtSection.GetValue<string>("Audience");
+
+var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidIssuer = issuer,
+        ValidateAudience = true,
+        ValidAudience = audience,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = signingKey,
+        ValidateLifetime = true
+    };
+});
+
+// Authorization policies
+builder.Services.AddAuthorization(options =>
+{
+    // StaffOnly: allow Staff (1) or Admin
+    options.AddPolicy("StaffOnly", policy => policy.RequireClaim("role", "1", "Admin"));
+    // LecturerOrAbove: allow Lecturer (2), Staff (1) or Admin
+    options.AddPolicy("LecturerOrAbove", policy => policy.RequireClaim("role", "2", "1", "Admin"));
+    options.AddPolicy("AdminOnly", policy => policy.RequireClaim("role", "Admin"));
+});
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -39,6 +88,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
