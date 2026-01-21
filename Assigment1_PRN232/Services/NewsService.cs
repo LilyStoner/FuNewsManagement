@@ -51,6 +51,53 @@ namespace Assigment1_PRN232_BE.Services
             return all.Where(n => n.NewsStatus == true).OrderByDescending(n => n.CreatedDate);
         }
 
+        public IQueryable<NewsArticle> GetPublishedQueryable()
+        {
+            return _repo.GetQueryable().Where(n => n.NewsStatus == true);
+        }
+
+        public IQueryable<NewsArticle> SearchPublishedQueryable(string? search, string? role, DateTime? from, DateTime? to, bool? status)
+        {
+            var q = _repo.GetQueryable();
+
+            if (status.HasValue)
+                q = q.Where(n => n.NewsStatus == status.Value);
+            else
+                q = q.Where(n => n.NewsStatus == true);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                q = q.Where(n => (n.NewsTitle != null && n.NewsTitle.Contains(search))
+                    || (n.Headline != null && n.Headline.Contains(search))
+                    || (n.NewsContent != null && n.NewsContent.Contains(search))
+                    || (n.CreatedBy != null && n.CreatedBy.AccountName != null && n.CreatedBy.AccountName.Contains(search))
+                    || (n.Category != null && n.Category.CategoryName != null && n.Category.CategoryName.Contains(search)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(role))
+            {
+                if (role.Equals("1") || role.Equals("Staff", StringComparison.OrdinalIgnoreCase))
+                {
+                    q = q.Where(n => n.CreatedBy != null && n.CreatedBy.AccountRole == 1);
+                }
+                else if (role.Equals("2") || role.Equals("Lecturer", StringComparison.OrdinalIgnoreCase))
+                {
+                    q = q.Where(n => n.CreatedBy != null && n.CreatedBy.AccountRole == 2);
+                }
+            }
+
+            if (from.HasValue)
+            {
+                q = q.Where(n => n.CreatedDate.HasValue && n.CreatedDate.Value >= from.Value);
+            }
+            if (to.HasValue)
+            {
+                q = q.Where(n => n.CreatedDate.HasValue && n.CreatedDate.Value <= to.Value);
+            }
+
+            return q.OrderByDescending(n => n.CreatedDate);
+        }
+
         public async Task<IEnumerable<NewsArticle>> SearchPublishedAsync(string? search, string? role)
         {
             var all = await _repo.GetAllAsync();

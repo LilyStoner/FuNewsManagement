@@ -1,0 +1,97 @@
+@page
+@model Assignment01_FE.Pages.TagsModel
+@{
+    ViewData["Title"] = "Tags";
+}
+<div class="row">
+    <div class="col-md-12">
+        <h2>Tags</h2>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success" role="alert">@TempData["Success"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger" role="alert">@TempData["Error"]</div>
+        }
+
+        <form method="get" class="d-flex mb-3">
+            <input name="search" value="@Model.Search" class="form-control me-2" placeholder="Search by tag name..." />
+            <button type="submit" class="btn btn-primary">Search</button>
+            <a asp-page="/Tags" asp-route-new="true" class="btn btn-success ms-2">New</a>
+        </form>
+
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Name</th>
+                    <th>Note</th>
+                    <th>Articles</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in Model.PagedTags)
+                {
+                    <tr>
+                        <td>@t.TagId</td>
+                        <td>@t.TagName</td>
+                        <td>@t.Note</td>
+                        <td>@t.ArticleCount</td>
+                        <td>
+                            <a asp-page="/Tags" asp-route-id="@t.TagId" class="btn btn-sm btn-info">Edit</a>
+                            <form method="post" asp-page-handler="Delete" asp-route-id="@t.TagId" class="d-inline" onsubmit="return confirm('Delete?');">
+                                <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <nav>
+            <ul class="pagination">
+                <li class="page-item @(Model.Page == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-route-page="@(Model.Page-1)" asp-route-search="@Model.Search" asp-route-pageSize="@Model.PageSize">Previous</a>
+                </li>
+                @for (var i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(Model.Page == i ? "active" : "")">
+                        <a class="page-link" asp-route-page="@i" asp-route-search="@Model.Search" asp-route-pageSize="@Model.PageSize">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.Page == Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-route-page="@(Model.Page+1)" asp-route-search="@Model.Search" asp-route-pageSize="@Model.PageSize">Next</a>
+                </li>
+            </ul>
+        </nav>
+
+        @if (Model.IsEditing)
+        {
+            <div class="card mt-4">
+                <div class="card-body">
+                    <form method="post" asp-page-handler="Save">
+                        <input type="hidden" asp-for="EditModel.TagId" />
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <input asp-for="EditModel.TagName" class="form-control" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Note</label>
+                            <textarea asp-for="EditModel.Note" class="form-control"></textarea>
+                        </div>
+                        <div class="d-grid">
+                            <button class="btn btn-primary">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

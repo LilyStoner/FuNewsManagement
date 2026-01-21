@@ -1,5 +1,5 @@
 using Assigment1_PRN232_BE.Models;
-using Assigment1_PRN232_BE.Repositories;
+using Assigment1_PRN232_BE.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 
@@ -9,17 +9,17 @@ namespace Assigment1_PRN232_BE.Controllers;
 [Route("api/[controller]")]
 public class TagController : ControllerBase
 {
-    private readonly ITagRepository _repo;
+    private readonly ITagService _service;
 
-    public TagController(ITagRepository repo)
+    public TagController(ITagService service)
     {
-        _repo = repo;
+        _service = service;
     }
 
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] string? search)
     {
-        var list = await _repo.SearchAsync(search);
+        var list = await _service.SearchAsync(search);
         var dto = list.Select(t => new TagDto { TagId = t.TagId, TagName = t.TagName, Note = t.Note, ArticleCount = t.NewsArticles?.Count ?? 0 });
         return Ok(dto);
     }
@@ -27,7 +27,7 @@ public class TagController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> Get(int id)
     {
-        var t = await _repo.GetByIdAsync(id);
+        var t = await _service.GetByIdAsync(id);
         if (t == null) return NotFound();
         return Ok(new TagDto { TagId = t.TagId, TagName = t.TagName, Note = t.Note, ArticleCount = t.NewsArticles?.Count ?? 0 });
     }
@@ -36,45 +36,54 @@ public class TagController : ControllerBase
     [Authorize(Policy = "StaffOnly")]
     public async Task<IActionResult> Create([FromBody] CreateTagRequest req)
     {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
         if (string.IsNullOrWhiteSpace(req.TagName)) return BadRequest("TagName is required.");
 
-        // prevent duplicate names
-        var exists = (await _repo.SearchAsync(req.TagName)).Any(t => string.Equals(t.TagName, req.TagName, StringComparison.OrdinalIgnoreCase));
-        if (exists) return BadRequest("Duplicate tag name is not allowed.");
-
-        var maxId = (await _repo.GetAllAsync()).Max(t => (int?)t.TagId) ?? 0;
-        var newId = maxId + 1;
-        var tag = new Tag { TagId = newId, TagName = req.TagName, Note = req.Note };
-        await _repo.AddAsync(tag);
-        return CreatedAtAction(nameof(Get), new { id = tag.TagId }, tag);
+        try
+        {
+            var tag = await _service.CreateAsync(req.TagName!, req.Note);
+            return CreatedAtAction(nameof(Get), new { id = tag.TagId }, new TagDto { TagId = tag.TagId, TagName = tag.TagName, Note = tag.Note, ArticleCount = tag.NewsArticles?.Count ?? 0 });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPut("{id}")]
     [Authorize(Policy = "StaffOnly")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateTagRequest req)
     {
-        var tag = await _repo.GetByIdAsync(id);
-        if (tag == null) return NotFound();
+        if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        if (!string.IsNullOrWhiteSpace(req.TagName) && !string.Equals(req.TagName, tag.TagName, StringComparison.OrdinalIgnoreCase))
+        try
         {
-            var exists = (await _repo.SearchAsync(req.TagName)).Any(t => t.TagId != id && string.Equals(t.TagName, req.TagName, StringComparison.OrdinalIgnoreCase));
-            if (exists) return BadRequest("Duplicate tag name is not allowed.");
-            tag.TagName = req.TagName;
+            await _service.UpdateAsync(id, req.TagName, req.Note);
+            return NoContent();
         }
-
-        if (req.Note != null) tag.Note = req.Note;
-        await _repo.UpdateAsync(tag);
-        return NoContent();
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpDelete("{id}")]
     [Authorize(Policy = "StaffOnly")]
     public async Task<IActionResult> Delete(int id)
     {
-        if (await _repo.IsTagUsedAsync(id)) return BadRequest("Tag cannot be deleted because it is used in NewsTag.");
-        await _repo.DeleteAsync(id);
-        return NoContent();
+        try
+        {
+            await _service.DeleteAsync(id);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }
 

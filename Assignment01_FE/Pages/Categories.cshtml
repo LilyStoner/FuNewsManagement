@@ -1,0 +1,109 @@
+@page
+@model Assignment01_FE.Pages.CategoriesModel
+@{
+    ViewData["Title"] = "Categories";
+}
+<div class="row">
+    <div class="col-md-12">
+        <h2>Categories</h2>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success" role="alert">@TempData["Success"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger" role="alert">@TempData["Error"]</div>
+        }
+
+        <form method="get" class="d-flex mb-3">
+            <input name="search" value="@Model.Search" class="form-control me-2" placeholder="Search by name or description..." />
+            <button type="submit" class="btn btn-primary">Search</button>
+            <a asp-page="/Categories" asp-route-new="true" class="btn btn-success ms-2">New</a>
+        </form>
+
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Parent</th>
+                    <th>Active</th>
+                    <th>Articles</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Model.PagedCategories)
+                {
+                    <tr>
+                        <td>@c.CategoryId</td>
+                        <td>@c.CategoryName</td>
+                        <td>@c.CategoryDesciption</td>
+                        <td>@(c.ParentCategoryId?.ToString() ?? "-")</td>
+                        <td>@(c.IsActive == true ? "Yes" : "No")</td>
+                        <td>@c.ArticleCount</td>
+                        <td>
+                            <a asp-page="/Categories" asp-route-id="@c.CategoryId" class="btn btn-sm btn-info">Edit</a>
+                            <form method="post" asp-page-handler="Delete" asp-route-id="@c.CategoryId" class="d-inline" onsubmit="return confirm('Delete?');">
+                                <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <nav>
+            <ul class="pagination">
+                <li class="page-item @(Model.Page == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-route-page="@(Model.Page-1)" asp-route-search="@Model.Search" asp-route-pageSize="@Model.PageSize">Previous</a>
+                </li>
+                @for (var i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(Model.Page == i ? "active" : "")">
+                        <a class="page-link" asp-route-page="@i" asp-route-search="@Model.Search" asp-route-pageSize="@Model.PageSize">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.Page == Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-route-page="@(Model.Page+1)" asp-route-search="@Model.Search" asp-route-pageSize="@Model.PageSize">Next</a>
+                </li>
+            </ul>
+        </nav>
+
+        @if (Model.IsEditing)
+        {
+            <div class="card mt-4">
+                <div class="card-body">
+                    <form method="post" asp-page-handler="Save">
+                        <input type="hidden" asp-for="EditModel.CategoryId" />
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <input asp-for="EditModel.CategoryName" class="form-control" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea asp-for="EditModel.CategoryDesciption" class="form-control"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Parent Category Id</label>
+                            <input asp-for="EditModel.ParentCategoryId" class="form-control" />
+                        </div>
+                        <div class="form-check mb-3">
+                            <input asp-for="EditModel.IsActive" class="form-check-input" />
+                            <label class="form-check-label">Active</label>
+                        </div>
+                        <div class="d-grid">
+                            <button class="btn btn-primary">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

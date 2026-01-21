@@ -5,12 +5,13 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
 using Assigment1_PRN232_BE.Services;
 using System.Linq;
+using Microsoft.AspNetCore.OData.Query;
+using Microsoft.AspNetCore.OData.Routing.Controllers;
 
 namespace Assigment1_PRN232_BE.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class NewsController : ControllerBase
+
+    public class NewsController : ODataController
     {
         private readonly INewsService _service;
 
@@ -19,24 +20,15 @@ namespace Assigment1_PRN232_BE.Controllers
             _service = service;
         }
 
-        // Anyone can view published news, supports search, role filter, date range and status
+        // Anyone can view published news, OData-enabled
         [HttpGet]
         [AllowAnonymous]
-        public async Task<IEnumerable<NewsListDto>> Get([FromQuery] string? search, [FromQuery] string? role, [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] bool? status)
+        [EnableQuery(PageSize = 10)]
+        public IActionResult Get()
         {
-            IEnumerable<NewsArticle> items;
-            if (string.IsNullOrWhiteSpace(search) && string.IsNullOrWhiteSpace(role) && !from.HasValue && !to.HasValue && !status.HasValue)
+            var q = _service.GetPublishedQueryable().Select( n => new NewsListDto
             {
-                items = await _service.GetAllPublishedAsync();
-            }
-            else
-            {
-                items = await _service.SearchPublishedAsync(search, role, from, to, status);
-            }
-
-            var dto = items.Select(n => new NewsListDto
-            {
-                NewsArticleId = n.NewsArticleId,
+                NewsArticleId =n.NewsArticleId,
                 NewsTitle = n.NewsTitle,
                 Headline = n.Headline,
                 CreatedDate = n.CreatedDate,
@@ -47,11 +39,10 @@ namespace Assigment1_PRN232_BE.Controllers
                 CreatedById = n.CreatedById,
                 UpdatedById = n.UpdatedById,
                 ModifiedDate = n.ModifiedDate,
-                AuthorName = n.CreatedBy?.AccountName,
-                CategoryName = n.Category?.CategoryName
-            }).ToList();
-
-            return dto;
+                AuthorName = n.CreatedBy != null ? n.CreatedBy.AccountName : null,
+                CategoryName = n.Category != null ? n.Category.CategoryName : null
+            });
+            return Ok(q);
         }
 
         [HttpGet("{id}")]

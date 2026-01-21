@@ -2,6 +2,7 @@ using Assigment1_PRN232_BE.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace Assigment1_PRN232_BE.Repositories
 {
@@ -14,13 +15,18 @@ namespace Assigment1_PRN232_BE.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<NewsArticle>> GetAllAsync()
+        public IQueryable<NewsArticle> GetQueryable()
         {
-            return await _context.NewsArticles
+            return _context.NewsArticles
                 .Include(n => n.Category)
                 .Include(n => n.Tags)
                 .Include(n => n.CreatedBy)
-                .ToListAsync();
+                .AsNoTracking();
+        }
+
+        public async Task<IEnumerable<NewsArticle>> GetAllAsync()
+        {
+            return await GetQueryable().ToListAsync();
         }
 
         public async Task<NewsArticle?> GetByIdAsync(string id)

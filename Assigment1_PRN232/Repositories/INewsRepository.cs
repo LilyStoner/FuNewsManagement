@@ -1,6 +1,7 @@
 using Assigment1_PRN232_BE.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace Assigment1_PRN232_BE.Repositories
 {
@@ -11,5 +12,6 @@ namespace Assigment1_PRN232_BE.Repositories
         Task AddAsync(NewsArticle news);
         Task UpdateAsync(NewsArticle news);
         Task DeleteAsync(string id);
+        IQueryable<NewsArticle> GetQueryable();
     }
 }

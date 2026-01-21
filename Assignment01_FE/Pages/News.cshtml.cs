@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Assignment01_FE.Pages;
 
@@ -19,94 +20,70 @@ public class NewsModel : PageModel
     [BindProperty(SupportsGet = true)]
     public string? Role { get; set; }
     [BindProperty(SupportsGet = true)]
-    public string? Id { get; set; }
-    [BindProperty(SupportsGet = true, Name = "new")]
-    public bool New { get; set; }
+    public int Page { get; set; } = 1;
     [BindProperty(SupportsGet = true)]
-    public DateTime? From { get; set; }
-    [BindProperty(SupportsGet = true)]
-    public DateTime? To { get; set; }
-    [BindProperty(SupportsGet = true)]
-    public bool? Status { get; set; }
+    public int PageSize { get; set; } = 10;
 
     public List<NewsDto> News { get; set; } = new();
-
-    [BindProperty]
-    public NewsDto EditModel { get; set; } = new();
-
-    public bool IsEditing { get; set; }
+    public string? NextLink { get; set; }
 
     public async Task OnGetAsync()
     {
         var client = _httpFactory.CreateClient();
 
-        var query = new List<string>();
-        if (!string.IsNullOrWhiteSpace(Search)) query.Add($"search={System.Net.WebUtility.UrlEncode(Search)}");
-        if (!string.IsNullOrWhiteSpace(Role)) query.Add($"role={System.Net.WebUtility.UrlEncode(Role)}");
-        if (From.HasValue) query.Add($"from={From.Value:yyyy-MM-dd}");
-        if (To.HasValue) query.Add($"to={To.Value:yyyy-MM-dd}");
-        if (Status.HasValue) query.Add($"status={Status.Value.ToString().ToLower()}");
+        // build OData query
+        int skip = (Page - 1) * PageSize;
+        var q = new List<string>();
+        q.Add("$top=" + PageSize);
+        q.Add("$skip=" + skip);
+        if (!string.IsNullOrWhiteSpace(Search))
+        {
+            // encode search value for URL and include in single quotes for OData contains
+            var v = System.Uri.EscapeDataString(Search);
+            q.Add("$filter=contains(NewsTitle,'" + v + "') or contains(Headline,'" + v + "') or contains(NewsContent,'" + v + "')");
+        }
+        q.Add("$orderby=CreatedDate desc");
 
-        var url = "https://localhost:7215/api/news" + (query.Count > 0 ? "?" + string.Join("&", query) : string.Empty);
+        var url = "https://localhost:7215/odata/News" + (q.Count > 0 ? "?" + string.Join("&", q) : string.Empty);
 
         var res = await client.GetAsync(url);
-        if (res.IsSuccessStatusCode)
-        {
-            var list = await res.Content.ReadFromJsonAsync<List<NewsDto>>();
-            if (list != null) News = list;
-        }
+        if (!res.IsSuccessStatusCode) return;
 
-        if (!string.IsNullOrEmpty(Id))
+        var json = await res.Content.ReadAsStringAsync();
+        // try parse as OData JSON (value array) or fallback to direct list
+        try
         {
-            var r2 = await client.GetAsync($"https://localhost:7215/api/news/{Id}");
-            if (r2.IsSuccessStatusCode)
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("value", out var value))
             {
-                var n = await r2.Content.ReadFromJsonAsync<NewsDto>();
-                if (n != null) { EditModel = n; IsEditing = true; }
+                News = JsonSerializer.Deserialize<List<NewsDto>>(value.GetRawText()) ?? new List<NewsDto>();
+            }
+            else
+            {
+                News = JsonSerializer.Deserialize<List<NewsDto>>(json) ?? new List<NewsDto>();
+            }
+
+            if (doc.RootElement.TryGetProperty("@odata.nextLink", out var next))
+            {
+                NextLink = next.GetString();
+            }
+            else if (doc.RootElement.TryGetProperty("odata.nextLink", out var next2))
+            {
+                NextLink = next2.GetString();
             }
         }
-        else if (New)
+        catch
         {
-            IsEditing = true;
-            EditModel = new NewsDto();
+            // fallback
+            News = JsonSerializer.Deserialize<List<NewsDto>>(json) ?? new List<NewsDto>();
         }
-    }
-
-    public async Task<IActionResult> OnPostSaveAsync()
-    {
-        var token = HttpContext.Session.GetString("auth_token");
-        var client = _httpFactory.CreateClient();
-        if (!string.IsNullOrEmpty(token)) client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        if (string.IsNullOrEmpty(EditModel.NewsArticleId))
-        {
-            EditModel.NewsArticleId = Guid.NewGuid().ToString("N").Substring(0, 8);
-            var res = await client.PostAsJsonAsync("https://localhost:7215/api/news", EditModel);
-            // ignore response handling for brevity
-        }
-        else
-        {
-            var res = await client.PutAsJsonAsync($"https://localhost:7215/api/news/{EditModel.NewsArticleId}", EditModel);
-        }
-
-        return RedirectToPage();
-    }
-
-    public async Task<IActionResult> OnPostDeleteAsync(string id)
-    {
-        var token = HttpContext.Session.GetString("auth_token");
-        var client = _httpFactory.CreateClient();
-        if (!string.IsNullOrEmpty(token)) client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        var res = await client.DeleteAsync($"https://localhost:7215/api/news/{id}");
-        return RedirectToPage();
     }
 
     public class NewsDto
     {
         public string NewsArticleId { get; set; } = string.Empty;
         public string? NewsTitle { get; set; }
-        public string Headline { get; set; } = string.Empty;
+        public string? Headline { get; set; }
         public DateTime? CreatedDate { get; set; }
         public string? NewsContent { get; set; }
         public string? NewsSource { get; set; }
@@ -115,8 +92,6 @@ public class NewsModel : PageModel
         public short? CreatedById { get; set; }
         public short? UpdatedById { get; set; }
         public DateTime? ModifiedDate { get; set; }
-
-        // helper fields returned from API for display
         public string? AuthorName { get; set; }
         public string? CategoryName { get; set; }
     }

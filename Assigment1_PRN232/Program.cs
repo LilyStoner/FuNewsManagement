@@ -1,11 +1,12 @@
+using Assigment1_PRN232_BE.Controllers;
 using Assigment1_PRN232_BE.Models;
 using Assigment1_PRN232_BE.Repositories;
 using Assigment1_PRN232_BE.Services;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.OData.ModelBuilder;
-using Microsoft.AspNetCore.OData;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.OData;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OData.ModelBuilder;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -22,9 +23,10 @@ builder.Services.AddControllers()
     .AddOData(options =>
 {
     var odataBuilder = new ODataConventionModelBuilder();
-    odataBuilder.EntitySet<NewsArticle>("News");
     odataBuilder.EntitySet<Category>("Category");
     odataBuilder.EntitySet<Tag>("Tag");
+    odataBuilder.EntityType<NewsListDto>().HasKey(n => n.NewsArticleId);
+    odataBuilder.EntitySet<NewsListDto>("News");
     options.AddRouteComponents("odata", odataBuilder.GetEdmModel()).Filter().OrderBy().Expand().Select().SetMaxTop(100).Count();
 });
 
@@ -38,6 +40,10 @@ builder.Services.AddScoped<INewsService, NewsService>();
 
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ITagRepository, TagRepository>();
+
+// Add services
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ITagService, TagService>();
 
 // JWT Authentication
 var jwtSection = builder.Configuration.GetSection("Jwt");

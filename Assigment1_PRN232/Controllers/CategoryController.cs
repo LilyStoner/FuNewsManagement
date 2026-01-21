@@ -1,5 +1,5 @@
 using Assigment1_PRN232_BE.Models;
-using Assigment1_PRN232_BE.Repositories;
+using Assigment1_PRN232_BE.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 
@@ -9,17 +9,17 @@ namespace Assigment1_PRN232_BE.Controllers;
 [Route("api/[controller]")]
 public class CategoryController : ControllerBase
 {
-    private readonly ICategoryRepository _repo;
+    private readonly ICategoryService _service;
 
-    public CategoryController(ICategoryRepository repo)
+    public CategoryController(ICategoryService service)
     {
-        _repo = repo;
+        _service = service;
     }
 
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] string? search)
     {
-        var list = await _repo.SearchAsync(search);
+        var list = await _service.SearchAsync(search);
         var dto = list.Select(c => new CategoryDto
         {
             CategoryId = c.CategoryId,
@@ -35,7 +35,7 @@ public class CategoryController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> Get(short id)
     {
-        var c = await _repo.GetByIdAsync(id);
+        var c = await _service.GetByIdAsync(id);
         if (c == null) return NotFound();
         return Ok(new CategoryDto { CategoryId = c.CategoryId, CategoryName = c.CategoryName, CategoryDesciption = c.CategoryDesciption, ParentCategoryId = c.ParentCategoryId, IsActive = c.IsActive, ArticleCount = c.NewsArticles?.Count ?? 0 });
     }
@@ -44,47 +44,56 @@ public class CategoryController : ControllerBase
     [Authorize(Policy = "StaffOnly")]
     public async Task<IActionResult> Create([FromBody] CreateCategoryRequest req)
     {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
         if (string.IsNullOrWhiteSpace(req.CategoryName) || string.IsNullOrWhiteSpace(req.CategoryDesciption))
             return BadRequest("CategoryName and CategoryDesciption are required.");
 
-        // compute id
-        var maxId = (await _repo.GetAllAsync()).Max(c => (int?)c.CategoryId) ?? 0;
-        var newId = (short)(maxId + 1);
-
-        var cat = new Category { CategoryId = newId, CategoryName = req.CategoryName, CategoryDesciption = req.CategoryDesciption, ParentCategoryId = req.ParentCategoryId, IsActive = req.IsActive };
-        await _repo.AddAsync(cat);
-        return CreatedAtAction(nameof(Get), new { id = cat.CategoryId }, cat);
+        try
+        {
+            var cat = await _service.CreateAsync(req.CategoryName!, req.CategoryDesciption!, req.ParentCategoryId, req.IsActive);
+            var dto = new CategoryDto { CategoryId = cat.CategoryId, CategoryName = cat.CategoryName, CategoryDesciption = cat.CategoryDesciption, ParentCategoryId = cat.ParentCategoryId, IsActive = cat.IsActive, ArticleCount = cat.NewsArticles?.Count ?? 0 };
+            return CreatedAtAction(nameof(Get), new { id = cat.CategoryId }, dto);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPut("{id}")]
     [Authorize(Policy = "StaffOnly")]
     public async Task<IActionResult> Update(short id, [FromBody] UpdateCategoryRequest req)
     {
-        var cat = await _repo.GetByIdAsync(id);
-        if (cat == null) return NotFound();
+        if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        // if category used by articles, cannot change ParentCategoryId
-        if (req.ParentCategoryId.HasValue && (await _repo.AnyNewsUsingCategoryAsync(id)))
+        try
         {
-            return BadRequest("Cannot change ParentCategoryId because this category is used by articles.");
+            await _service.UpdateAsync(id, req.CategoryName, req.CategoryDesciption, req.ParentCategoryId, req.IsActive);
+            return NoContent();
         }
-
-        if (!string.IsNullOrWhiteSpace(req.CategoryName)) cat.CategoryName = req.CategoryName;
-        if (!string.IsNullOrWhiteSpace(req.CategoryDesciption)) cat.CategoryDesciption = req.CategoryDesciption;
-        if (req.ParentCategoryId.HasValue) cat.ParentCategoryId = req.ParentCategoryId;
-        if (req.IsActive.HasValue) cat.IsActive = req.IsActive;
-
-        await _repo.UpdateAsync(cat);
-        return NoContent();
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpDelete("{id}")]
     [Authorize(Policy = "StaffOnly")]
     public async Task<IActionResult> Delete(short id)
     {
-        if (await _repo.AnyNewsUsingCategoryAsync(id)) return BadRequest("Category cannot be deleted because it is used by news articles.");
-        await _repo.DeleteAsync(id);
-        return NoContent();
+        try
+        {
+            await _service.DeleteAsync(id);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }
 
