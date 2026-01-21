@@ -23,6 +23,8 @@ builder.Services.AddControllers()
 {
     var odataBuilder = new ODataConventionModelBuilder();
     odataBuilder.EntitySet<NewsArticle>("News");
+    odataBuilder.EntitySet<Category>("Category");
+    odataBuilder.EntitySet<Tag>("Tag");
     options.AddRouteComponents("odata", odataBuilder.GetEdmModel()).Filter().OrderBy().Expand().Select().SetMaxTop(100).Count();
 });
 
@@ -33,6 +35,9 @@ builder.Services.AddDbContext<FunewsManagementContext>(options =>
 // Repositories and services
 builder.Services.AddScoped<INewsRepository, NewsRepository>();
 builder.Services.AddScoped<INewsService, NewsService>();
+
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ITagRepository, TagRepository>();
 
 // JWT Authentication
 var jwtSection = builder.Configuration.GetSection("Jwt");
