@@ -7,19 +7,16 @@
     <div class="col-md-12">
         <h2>Tags</h2>
 
-        @if (TempData["Success"] != null)
-        {
-            <div class="alert alert-success" role="alert">@TempData["Success"]</div>
-        }
-        @if (TempData["Error"] != null)
-        {
-            <div class="alert alert-danger" role="alert">@TempData["Error"]</div>
-        }
+        <!-- Success/Error Alerts -->
+        <div id="alertContainer"></div>
 
         <form method="get" class="d-flex mb-3">
             <input name="search" value="@Model.Search" class="form-control me-2" placeholder="Search by tag name..." />
             <button type="submit" class="btn btn-primary">Search</button>
-            <a asp-page="/Tags" asp-route-new="true" class="btn btn-success ms-2">New</a>
+            @if (Model.CanManage)
+            {
+                <button type="button" class="btn btn-success ms-2" data-bs-toggle="modal" data-bs-target="#tagModal" onclick="openCreateModal()">New</button>
+            }
         </form>
 
         <table class="table table-bordered">
@@ -29,7 +26,10 @@
                     <th>Name</th>
                     <th>Note</th>
                     <th>Articles</th>
-                    <th>Actions</th>
+                    @if (Model.CanManage)
+                    {
+                        <th>Actions</th>
+                    }
                 </tr>
             </thead>
             <tbody>
@@ -40,17 +40,19 @@
                         <td>@t.TagName</td>
                         <td>@t.Note</td>
                         <td>@t.ArticleCount</td>
-                        <td>
-                            <a asp-page="/Tags" asp-route-id="@t.TagId" class="btn btn-sm btn-info">Edit</a>
-                            <form method="post" asp-page-handler="Delete" asp-route-id="@t.TagId" class="d-inline" onsubmit="return confirm('Delete?');">
-                                <button class="btn btn-sm btn-danger" type="submit">Delete</button>
-                            </form>
-                        </td>
+                        @if (Model.CanManage)
+                        {
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="openEditModal(@t.TagId)">Edit</button>
+                                <button class="btn btn-sm btn-danger" onclick="confirmDelete(@t.TagId, '@t.TagName')">Delete</button>
+                            </td>
+                        }
                     </tr>
                 }
             </tbody>
         </table>
 
+        <!-- Pagination -->
         <nav>
             <ul class="pagination">
                 <li class="page-item @(Model.Page == 1 ? "disabled" : "")">
@@ -67,31 +69,170 @@
                 </li>
             </ul>
         </nav>
+    </div>
+</div>
 
-        @if (Model.IsEditing)
-        {
-            <div class="card mt-4">
-                <div class="card-body">
-                    <form method="post" asp-page-handler="Save">
-                        <input type="hidden" asp-for="EditModel.TagId" />
-                        <div class="mb-3">
-                            <label class="form-label">Name</label>
-                            <input asp-for="EditModel.TagName" class="form-control" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Note</label>
-                            <textarea asp-for="EditModel.Note" class="form-control"></textarea>
-                        </div>
-                        <div class="d-grid">
-                            <button class="btn btn-primary">Save</button>
-                        </div>
-                    </form>
-                </div>
+<!-- Tag Modal -->
+<div class="modal fade" id="tagModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tagModalTitle">Tag</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-        }
+            <div class="modal-body">
+                <form id="tagForm">
+                    <input type="hidden" id="tagId" />
+                    <div class="mb-3">
+                        <label class="form-label">Name *</label>
+                        <input type="text" id="tagName" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Note</label>
+                        <textarea id="tagNote" class="form-control"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveTag()">Save</button>
+            </div>
+        </div>
     </div>
 </div>
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
+    <script>
+        let isEditMode = false;
+
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            alertContainer.appendChild(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        function openCreateModal() {
+            isEditMode = false;
+            document.getElementById('tagModalTitle').textContent = 'Create Tag';
+            document.getElementById('tagForm').reset();
+            document.getElementById('tagId').value = '';
+        }
+
+        async function openEditModal(id) {
+            isEditMode = true;
+            document.getElementById('tagModalTitle').textContent = 'Edit Tag';
+            
+            try {
+                const response = await fetch(`https://localhost:7215/api/tag/${id}`, {
+                    method: 'GET'
+                });
+                
+                if (response.ok) {
+                    const tag = await response.json();
+                    if (tag) {
+                        document.getElementById('tagId').value = tag.tagId;
+                        document.getElementById('tagName').value = tag.tagName || '';
+                        document.getElementById('tagNote').value = tag.note || '';
+                    }
+                }
+            } catch (error) {
+                showAlert('Error loading tag details', 'danger');
+            }
+        }
+
+        async function saveTag() {
+            const form = document.getElementById('tagForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const data = {
+                tagName: document.getElementById('tagName').value,
+                note: document.getElementById('tagNote').value
+            };
+
+            try {
+                let response;
+                const token = '@Html.Raw(HttpContext.Session.GetString("auth_token"))';
+                
+                if (isEditMode) {
+                    const id = document.getElementById('tagId').value;
+                    response = await fetch(`https://localhost:7215/api/tag/${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': token ? `Bearer ${token}` : ''
+                        },
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    response = await fetch('https://localhost:7215/api/tag', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': token ? `Bearer ${token}` : ''
+                        },
+                        body: JSON.stringify(data)
+                    });
+                }
+
+                if (response.ok) {
+                    showAlert(isEditMode ? 'Tag updated successfully.' : 'Tag created successfully.', 'success');
+                    $('#tagModal').modal('hide');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    const errorText = await response.text();
+                    let errorMessage = errorText;
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        errorMessage = errorJson.message || errorText;
+                    } catch {}
+                    showAlert(errorMessage, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error saving tag', 'danger');
+            }
+        }
+
+        function confirmDelete(id, name) {
+            if (confirm(`Are you sure you want to delete tag "${name}"?`)) {
+                deleteTag(id);
+            }
+        }
+
+        async function deleteTag(id) {
+            try {
+                const token = '@Html.Raw(HttpContext.Session.GetString("auth_token"))';
+                
+                const response = await fetch(`https://localhost:7215/api/tag/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                });
+
+                if (response.ok) {
+                    showAlert('Tag deleted successfully.', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    const errorText = await response.text();
+                    let errorMessage = errorText;
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        errorMessage = errorJson.message || errorText;
+                    } catch {}
+                    showAlert(errorMessage, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error deleting tag', 'danger');
+            }
+        }
+    </script>
 }

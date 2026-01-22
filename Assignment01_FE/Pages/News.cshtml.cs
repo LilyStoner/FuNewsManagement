@@ -26,9 +26,15 @@ public class NewsModel : PageModel
 
     public List<NewsDto> News { get; set; } = new();
     public string? NextLink { get; set; }
+    public int TotalPages { get; set; } = 1;
+    public string? UserRole { get; set; }
+    public bool CanManage => UserRole == "1" || UserRole == "Admin"; // Staff or Admin
 
     public async Task OnGetAsync()
     {
+        // Get user role from session
+        UserRole = HttpContext.Session.GetString("auth_role");
+
         var client = _httpFactory.CreateClient();
 
         // build OData query
@@ -39,28 +45,44 @@ public class NewsModel : PageModel
         if (!string.IsNullOrWhiteSpace(Search))
         {
             // encode search value for URL and include in single quotes for OData contains
-            var v = System.Uri.EscapeDataString(Search);
-            q.Add("$filter=contains(NewsTitle,'" + v + "') or contains(Headline,'" + v + "') or contains(NewsContent,'" + v + "')");
+            var searchEncoded = System.Uri.EscapeDataString(Search);
+            q.Add($"$filter=contains(NewsTitle,'{searchEncoded}') or contains(Headline,'{searchEncoded}') or contains(NewsContent,'{searchEncoded}')");
         }
         q.Add("$orderby=CreatedDate desc");
 
         var url = "https://localhost:7215/odata/News" + (q.Count > 0 ? "?" + string.Join("&", q) : string.Empty);
 
         var res = await client.GetAsync(url);
-        if (!res.IsSuccessStatusCode) return;
+        if (!res.IsSuccessStatusCode) 
+        {
+            // Log error or show message
+            return;
+        }
 
         var json = await res.Content.ReadAsStringAsync();
-        // try parse as OData JSON (value array) or fallback to direct list
         try
         {
             using var doc = JsonDocument.Parse(json);
             if (doc.RootElement.TryGetProperty("value", out var value))
             {
-                News = JsonSerializer.Deserialize<List<NewsDto>>(value.GetRawText()) ?? new List<NewsDto>();
-            }
-            else
-            {
-                News = JsonSerializer.Deserialize<List<NewsDto>>(json) ?? new List<NewsDto>();
+                // Map from NewsArticle (OData entity) to NewsDto for display
+                var articles = JsonSerializer.Deserialize<List<NewsArticleOData>>(value.GetRawText()) ?? new List<NewsArticleOData>();
+                News = articles.Select(a => new NewsDto
+                {
+                    NewsArticleId = a.NewsArticleId,
+                    NewsTitle = a.NewsTitle,
+                    Headline = a.Headline,
+                    CreatedDate = a.CreatedDate,
+                    NewsContent = a.NewsContent,
+                    NewsSource = a.NewsSource,
+                    CategoryId = a.CategoryId,
+                    NewsStatus = a.NewsStatus,
+                    CreatedById = a.CreatedById,
+                    UpdatedById = a.UpdatedById,
+                    ModifiedDate = a.ModifiedDate,
+                    AuthorName = a.CreatedBy?.AccountName,
+                    CategoryName = a.Category?.CategoryName
+                }).ToList();
             }
 
             if (doc.RootElement.TryGetProperty("@odata.nextLink", out var next))
@@ -71,12 +93,43 @@ public class NewsModel : PageModel
             {
                 NextLink = next2.GetString();
             }
+
+            // Calculate total pages (rough estimate since OData doesn't provide total count by default)
+            TotalPages = Math.Max(1, Page + (string.IsNullOrEmpty(NextLink) ? 0 : 1));
         }
-        catch
+        catch (Exception ex)
         {
-            // fallback
-            News = JsonSerializer.Deserialize<List<NewsDto>>(json) ?? new List<NewsDto>();
+            // Log error
+            News = new List<NewsDto>();
         }
+    }
+
+    // OData entity structure for parsing
+    public class NewsArticleOData
+    {
+        public string NewsArticleId { get; set; } = string.Empty;
+        public string? NewsTitle { get; set; }
+        public string? Headline { get; set; }
+        public DateTime? CreatedDate { get; set; }
+        public string? NewsContent { get; set; }
+        public string? NewsSource { get; set; }
+        public short? CategoryId { get; set; }
+        public bool? NewsStatus { get; set; }
+        public short? CreatedById { get; set; }
+        public short? UpdatedById { get; set; }
+        public DateTime? ModifiedDate { get; set; }
+        public CreatedByOData? CreatedBy { get; set; }
+        public CategoryOData? Category { get; set; }
+    }
+
+    public class CreatedByOData
+    {
+        public string? AccountName { get; set; }
+    }
+
+    public class CategoryOData
+    {
+        public string? CategoryName { get; set; }
     }
 
     public class NewsDto

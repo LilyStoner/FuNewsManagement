@@ -2,6 +2,8 @@ using Assigment1_PRN232_BE.Models;
 using Assigment1_PRN232_BE.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using Assigment1_PRN232_BE.DTOs;
 
 namespace Assigment1_PRN232_BE.Controllers;
 
@@ -14,6 +16,12 @@ public class CategoryController : ControllerBase
     public CategoryController(ICategoryService service)
     {
         _service = service;
+    }
+
+    private short GetCurrentUserId()
+    {
+        var idClaim = User.FindFirst("id")?.Value;
+        return short.TryParse(idClaim, out var id) ? id : (short)1;
     }
 
     [HttpGet]
@@ -46,7 +54,7 @@ public class CategoryController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
         if (string.IsNullOrWhiteSpace(req.CategoryName) || string.IsNullOrWhiteSpace(req.CategoryDesciption))
-            return BadRequest("CategoryName and CategoryDesciption are required.");
+            return BadRequest(new { message = "CategoryName and CategoryDesciption are required." });
 
         try
         {
@@ -95,30 +103,4 @@ public class CategoryController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
-}
-
-public class CategoryDto
-{
-    public short CategoryId { get; set; }
-    public string? CategoryName { get; set; }
-    public string? CategoryDesciption { get; set; }
-    public short? ParentCategoryId { get; set; }
-    public bool? IsActive { get; set; }
-    public int ArticleCount { get; set; }
-}
-
-public class CreateCategoryRequest
-{
-    public string? CategoryName { get; set; }
-    public string? CategoryDesciption { get; set; }
-    public short? ParentCategoryId { get; set; }
-    public bool? IsActive { get; set; }
-}
-
-public class UpdateCategoryRequest
-{
-    public string? CategoryName { get; set; }
-    public string? CategoryDesciption { get; set; }
-    public short? ParentCategoryId { get; set; }
-    public bool? IsActive { get; set; }
 }

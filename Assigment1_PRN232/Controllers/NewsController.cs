@@ -1,4 +1,5 @@
 using Assigment1_PRN232_BE.Models;
+using Assigment1_PRN232_BE.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -7,42 +8,26 @@ using Assigment1_PRN232_BE.Services;
 using System.Linq;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
+using System.Security.Claims;
 
 namespace Assigment1_PRN232_BE.Controllers
 {
-
-    public class NewsController : ODataController
+    // API Controller for News CRUD
+    [ApiController]
+    [Route("api/news")]
+    public class NewsApiController : ControllerBase
     {
         private readonly INewsService _service;
 
-        public NewsController(INewsService service)
+        public NewsApiController(INewsService service)
         {
             _service = service;
         }
 
-        // Anyone can view published news, OData-enabled
-        [HttpGet]
-        [AllowAnonymous]
-        [EnableQuery(PageSize = 10)]
-        public IActionResult Get()
+        private short GetCurrentUserId()
         {
-            var q = _service.GetPublishedQueryable().Select( n => new NewsListDto
-            {
-                NewsArticleId =n.NewsArticleId,
-                NewsTitle = n.NewsTitle,
-                Headline = n.Headline,
-                CreatedDate = n.CreatedDate,
-                NewsContent = n.NewsContent,
-                NewsSource = n.NewsSource,
-                CategoryId = n.CategoryId,
-                NewsStatus = n.NewsStatus,
-                CreatedById = n.CreatedById,
-                UpdatedById = n.UpdatedById,
-                ModifiedDate = n.ModifiedDate,
-                AuthorName = n.CreatedBy != null ? n.CreatedBy.AccountName : null,
-                CategoryName = n.Category != null ? n.Category.CategoryName : null
-            });
-            return Ok(q);
+            var idClaim = User.FindFirst("id")?.Value;
+            return short.TryParse(idClaim, out var id) ? id : (short)1;
         }
 
         [HttpGet("{id}")]
@@ -73,52 +58,99 @@ namespace Assigment1_PRN232_BE.Controllers
             return dto;
         }
 
-        // Create/Update/Delete require Staff (1) or Admin
         [HttpPost]
         [Authorize(Policy = "StaffOnly")]
-        public async Task<IActionResult> Post([FromBody] NewsArticle news)
+        public async Task<IActionResult> Post([FromBody] NewsCreateDto req)
         {
-            // For skeleton, using a fixed current user id 1. Replace with actual auth user id.
-            await _service.AddAsync(news, 1);
-            return CreatedAtAction(nameof(Get), new { id = news.NewsArticleId }, news);
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            
+            var news = new NewsArticle
+            {
+                NewsArticleId = req.NewsArticleId ?? Guid.NewGuid().ToString("N")[..20],
+                NewsTitle = req.NewsTitle,
+                Headline = req.Headline,
+                NewsContent = req.NewsContent,
+                NewsSource = req.NewsSource,
+                CategoryId = req.CategoryId,
+                NewsStatus = req.NewsStatus
+            };
+
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+                await _service.AddAsync(news, currentUserId);
+                return CreatedAtAction(nameof(Get), new { id = news.NewsArticleId }, news);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
         [Authorize(Policy = "StaffOnly")]
-        public async Task<IActionResult> Put(string id, [FromBody] NewsArticle news)
+        public async Task<IActionResult> Put(string id, [FromBody] NewsUpdateDto req)
         {
-            var existing = await _service.GetByIdAsync(id);
-            if (existing == null) return NotFound();
-            news.NewsArticleId = id;
-            await _service.UpdateAsync(news, 1);
-            return NoContent();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            try
+            {
+                var existing = await _service.GetByIdAsync(id);
+                if (existing == null) return NotFound();
+
+                if (req.NewsTitle != null) existing.NewsTitle = req.NewsTitle;
+                if (req.Headline != null) existing.Headline = req.Headline;
+                if (req.NewsContent != null) existing.NewsContent = req.NewsContent;
+                if (req.NewsSource != null) existing.NewsSource = req.NewsSource;
+                if (req.CategoryId.HasValue) existing.CategoryId = req.CategoryId;
+                if (req.NewsStatus.HasValue) existing.NewsStatus = req.NewsStatus;
+
+                var currentUserId = GetCurrentUserId();
+                await _service.UpdateAsync(existing, currentUserId);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
         [Authorize(Policy = "StaffOnly")]
         public async Task<IActionResult> Delete(string id)
         {
-            var existing = await _service.GetByIdAsync(id);
-            if (existing == null) return NotFound();
-            await _service.DeleteAsync(id);
-            return NoContent();
+            try
+            {
+                var existing = await _service.GetByIdAsync(id);
+                if (existing == null) return NotFound();
+                await _service.DeleteAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 
-    public class NewsListDto
+    // OData Controller for News querying
+    public class NewsController : ODataController
     {
-        public string NewsArticleId { get; set; } = string.Empty;
-        public string? NewsTitle { get; set; }
-        public string Headline { get; set; } = string.Empty;
-        public DateTime? CreatedDate { get; set; }
-        public string? NewsContent { get; set; }
-        public string? NewsSource { get; set; }
-        public short? CategoryId { get; set; }
-        public bool? NewsStatus { get; set; }
-        public short? CreatedById { get; set; }
-        public short? UpdatedById { get; set; }
-        public DateTime? ModifiedDate { get; set; }
-        public string? AuthorName { get; set; }
-        public string? CategoryName { get; set; }
+        private readonly INewsService _service;
+
+        public NewsController(INewsService service)
+        {
+            _service = service;
+        }
+
+        // Anyone can view published news, OData-enabled
+        [HttpGet]
+        [AllowAnonymous]
+        [EnableQuery(PageSize = 10)]
+        public IActionResult Get()
+        {
+            var q = _service.GetPublishedQueryable();
+            return Ok(q);
+        }
     }
 }

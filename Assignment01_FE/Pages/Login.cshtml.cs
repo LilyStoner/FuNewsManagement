@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
 using System.Net.Http.Json;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace Assignment01_FE.Pages;
 
@@ -42,8 +44,18 @@ public class LoginModel : PageModel
             return Page();
         }
 
-        // store token in session
+        // Parse JWT token to extract claims
+        var handler = new JwtSecurityTokenHandler();
+        var jsonToken = handler.ReadJwtToken(payload.token);
+        var roleClaim = jsonToken.Claims.FirstOrDefault(x => x.Type == "role")?.Value;
+        var userIdClaim = jsonToken.Claims.FirstOrDefault(x => x.Type == "id")?.Value;
+        var nameClaim = jsonToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Name)?.Value;
+
+        // Store token and user info in session
         HttpContext.Session.SetString("auth_token", payload.token);
+        HttpContext.Session.SetString("auth_role", roleClaim ?? "");
+        HttpContext.Session.SetString("auth_user_id", userIdClaim ?? "");
+        HttpContext.Session.SetString("auth_user_name", nameClaim ?? "");
 
         return RedirectToPage("/News");
     }

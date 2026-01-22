@@ -2,6 +2,8 @@ using Assigment1_PRN232_BE.Models;
 using Assigment1_PRN232_BE.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using Assigment1_PRN232_BE.DTOs;
 
 namespace Assigment1_PRN232_BE.Controllers;
 
@@ -14,6 +16,12 @@ public class TagController : ControllerBase
     public TagController(ITagService service)
     {
         _service = service;
+    }
+
+    private short GetCurrentUserId()
+    {
+        var idClaim = User.FindFirst("id")?.Value;
+        return short.TryParse(idClaim, out var id) ? id : (short)1;
     }
 
     [HttpGet]
@@ -37,7 +45,7 @@ public class TagController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateTagRequest req)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
-        if (string.IsNullOrWhiteSpace(req.TagName)) return BadRequest("TagName is required.");
+        if (string.IsNullOrWhiteSpace(req.TagName)) return BadRequest(new { message = "TagName is required." });
 
         try
         {
@@ -87,22 +95,3 @@ public class TagController : ControllerBase
     }
 }
 
-public class TagDto
-{
-    public int TagId { get; set; }
-    public string? TagName { get; set; }
-    public string? Note { get; set; }
-    public int ArticleCount { get; set; }
-}
-
-public class CreateTagRequest
-{
-    public string? TagName { get; set; }
-    public string? Note { get; set; }
-}
-
-public class UpdateTagRequest
-{
-    public string? TagName { get; set; }
-    public string? Note { get; set; }
-}

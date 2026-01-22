@@ -1,7 +1,9 @@
 using Assigment1_PRN232_BE.Controllers;
+using Assigment1_PRN232_BE.DTOs;
 using Assigment1_PRN232_BE.Models;
 using Assigment1_PRN232_BE.Repositories;
 using Assigment1_PRN232_BE.Services;
+using Assigment1_PRN232_BE.Mappings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
@@ -25,10 +27,14 @@ builder.Services.AddControllers()
     var odataBuilder = new ODataConventionModelBuilder();
     odataBuilder.EntitySet<Category>("Category");
     odataBuilder.EntitySet<Tag>("Tag");
+    // Configure NewsListDto with proper key
     odataBuilder.EntityType<NewsListDto>().HasKey(n => n.NewsArticleId);
     odataBuilder.EntitySet<NewsListDto>("News");
     options.AddRouteComponents("odata", odataBuilder.GetEdmModel()).Filter().OrderBy().Expand().Select().SetMaxTop(100).Count();
 });
+
+// Add AutoMapper
+builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 // DbContext
 builder.Services.AddDbContext<FunewsManagementContext>(options =>
