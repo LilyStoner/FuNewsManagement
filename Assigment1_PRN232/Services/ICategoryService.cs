@@ -1,17 +1,20 @@
 using Assigment1_PRN232_BE.Models;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Assigment1_PRN232_BE.Services
 {
     public interface ICategoryService
     {
-        Task<IEnumerable<Category>> GetAllAsync();
-        Task<Category?> GetByIdAsync(short id);
-        Task<IEnumerable<Category>> SearchAsync(string? search);
-        Task<Category> CreateAsync(string name, string description, short? parentId, bool? isActive);
-        Task UpdateAsync(short id, string? name, string? description, short? parentId, bool? isActive);
-        Task DeleteAsync(short id);
-        Task<bool> AnyNewsUsingCategoryAsync(short id);
+        Task<IEnumerable<Category>> GetAllCategoriesAsync();
+        Task<Category?> GetCategoryByIdAsync(short id);
+        Task<IEnumerable<Category>> GetActiveCategoriesAsync();
+        Task<IEnumerable<Category>> SearchCategoriesAsync(string? name = null, string? description = null);
+        Task<Category> CreateCategoryAsync(Category category);
+        Task<Category> UpdateCategoryAsync(Category category);
+        Task<bool> DeleteCategoryAsync(short id);
+        Task<bool> CanDeleteCategoryAsync(short id);
+        Task<IEnumerable<Category>> GetSubCategoriesAsync(short parentId);
+        Task<int> GetArticleCountByCategoryAsync(short categoryId);
+        Task<bool> IsCategoryNameExistAsync(string name, short? excludeId = null);
+        IQueryable<Category> GetCategoriesQueryable();
     }
 }

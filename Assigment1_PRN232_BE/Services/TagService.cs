@@ -1,60 +1,150 @@
+using Microsoft.EntityFrameworkCore;
+using Assigment1_PRN232_BE.DataAccess;
 using Assigment1_PRN232_BE.Models;
-using Assigment1_PRN232_BE.Repositories;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Linq;
 
 namespace Assigment1_PRN232_BE.Services
 {
     public class TagService : ITagService
     {
-        private readonly ITagRepository _repo;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public TagService(ITagRepository repo)
+        public TagService(IUnitOfWork unitOfWork)
         {
-            _repo = repo;
+            _unitOfWork = unitOfWork;
         }
 
-        public async Task<IEnumerable<Tag>> GetAllAsync() => await _repo.GetAllAsync();
-
-        public async Task<Tag?> GetByIdAsync(int id) => await _repo.GetByIdAsync(id);
-
-        public async Task<IEnumerable<Tag>> SearchAsync(string? search) => await _repo.SearchAsync(search);
-
-        public async Task<Tag> CreateAsync(string name, string? note)
+        public async Task<IEnumerable<Tag>> GetAllTagsAsync()
         {
-            var existing = (await _repo.SearchAsync(name)).Any(t => string.Equals(t.TagName, name, System.StringComparison.OrdinalIgnoreCase));
-            if (existing) throw new InvalidOperationException("Duplicate tag name is not allowed.");
+            return await _unitOfWork.TagRepository.Query()
+                .Include(t => t.NewsArticles)
+                .OrderBy(t => t.TagName)
+                .ToListAsync();
+        }
 
-            var maxId = (await _repo.GetAllAsync()).Max(t => (int?)t.TagId) ?? 0;
-            var newId = maxId + 1;
-            var tag = new Tag { TagId = newId, TagName = name, Note = note };
-            await _repo.AddAsync(tag);
+        public async Task<Tag?> GetTagByIdAsync(int id)
+        {
+            return await _unitOfWork.TagRepository.Query()
+                .Include(t => t.NewsArticles)
+                .FirstOrDefaultAsync(t => t.TagId == id);
+        }
+
+        public async Task<IEnumerable<Tag>> SearchTagsAsync(string? tagName = null)
+        {
+            var query = _unitOfWork.TagRepository.Query();
+
+            if (!string.IsNullOrEmpty(tagName))
+            {
+                query = query.Where(t => t.TagName!.Contains(tagName));
+            }
+
+            return await query.OrderBy(t => t.TagName).ToListAsync();
+        }
+
+        public async Task<Tag> CreateTagAsync(Tag tag)
+        {
+            // Validate required fields
+            if (string.IsNullOrEmpty(tag.TagName))
+            {
+                throw new ArgumentException("Tag name is required");
+            }
+
+            // Check for duplicate name
+            if (await IsTagNameExistAsync(tag.TagName))
+            {
+                throw new InvalidOperationException("Tag name already exists");
+            }
+
+            // Generate new ID
+            var allTags = await _unitOfWork.TagRepository.GetAllAsync();
+            tag.TagId = allTags.Any() ? allTags.Max(t => t.TagId) + 1 : 1;
+
+            await _unitOfWork.TagRepository.AddAsync(tag);
+            await _unitOfWork.SaveChangesAsync();
+
             return tag;
         }
 
-        public async Task UpdateAsync(int id, string? name, string? note)
+        public async Task<Tag> UpdateTagAsync(Tag tag)
         {
-            var tag = await _repo.GetByIdAsync(id);
-            if (tag == null) throw new KeyNotFoundException("Tag not found");
-
-            if (!string.IsNullOrWhiteSpace(name) && !string.Equals(name, tag.TagName, System.StringComparison.OrdinalIgnoreCase))
+            var existingTag = await _unitOfWork.TagRepository.GetByIdAsync(tag.TagId);
+            if (existingTag == null)
             {
-                var exists = (await _repo.SearchAsync(name)).Any(t => t.TagId != id && string.Equals(t.TagName, name, System.StringComparison.OrdinalIgnoreCase));
-                if (exists) throw new InvalidOperationException("Duplicate tag name is not allowed.");
-                tag.TagName = name;
+                throw new InvalidOperationException("Tag not found");
             }
 
-            if (note != null) tag.Note = note;
-            await _repo.UpdateAsync(tag);
+            // Check for duplicate name (excluding current tag)
+            if (await IsTagNameExistAsync(tag.TagName!, tag.TagId))
+            {
+                throw new InvalidOperationException("Tag name already exists");
+            }
+
+            // Update properties
+            existingTag.TagName = tag.TagName;
+            existingTag.Note = tag.Note;
+
+            _unitOfWork.TagRepository.Update(existingTag);
+            await _unitOfWork.SaveChangesAsync();
+
+            return existingTag;
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task<bool> DeleteTagAsync(int id)
         {
-            if (await _repo.IsTagUsedAsync(id)) throw new InvalidOperationException("Tag cannot be deleted because it is used in NewsTag.");
-            await _repo.DeleteAsync(id);
+            if (!await CanDeleteTagAsync(id))
+            {
+                return false;
+            }
+
+            var tag = await _unitOfWork.TagRepository.GetByIdAsync(id);
+            if (tag == null)
+            {
+                return false;
+            }
+
+            _unitOfWork.TagRepository.Delete(tag);
+            await _unitOfWork.SaveChangesAsync();
+
+            return true;
         }
 
-        public async Task<bool> IsTagUsedAsync(int id) => await _repo.IsTagUsedAsync(id);
+        public async Task<bool> CanDeleteTagAsync(int id)
+        {
+            // Check if tag is used by any news articles
+            var tag = await _unitOfWork.TagRepository.Query()
+                .Include(t => t.NewsArticles)
+                .FirstOrDefaultAsync(t => t.TagId == id);
+
+            return tag?.NewsArticles?.Count == 0;
+        }
+
+        public async Task<IEnumerable<NewsArticle>> GetArticlesByTagAsync(int tagId)
+        {
+            var tag = await _unitOfWork.TagRepository.Query()
+                .Include(t => t.NewsArticles)
+                    .ThenInclude(n => n.Category)
+                .Include(t => t.NewsArticles)
+                    .ThenInclude(n => n.CreatedBy)
+                .FirstOrDefaultAsync(t => t.TagId == tagId);
+
+            return tag?.NewsArticles ?? new List<NewsArticle>();
+        }
+
+        public async Task<bool> IsTagNameExistAsync(string tagName, int? excludeId = null)
+        {
+            if (excludeId.HasValue)
+            {
+                return await _unitOfWork.TagRepository
+                    .ExistsAsync(t => t.TagName == tagName && t.TagId != excludeId);
+            }
+
+            return await _unitOfWork.TagRepository
+                .ExistsAsync(t => t.TagName == tagName);
+        }
+
+        public IQueryable<Tag> GetTagsQueryable()
+        {
+            return _unitOfWork.TagRepository.Query()
+                .Include(t => t.NewsArticles);
+        }
     }
 }

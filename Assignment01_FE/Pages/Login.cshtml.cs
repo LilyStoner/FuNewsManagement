@@ -1,72 +1,75 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.ComponentModel.DataAnnotations;
-using System.Net.Http.Json;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
+using Assignment1_PRN232_FE.Models;
+using Assignment1_PRN232_FE.Services;
 
-namespace Assignment01_FE.Pages;
-
-public class LoginModel : PageModel
+namespace Assignment1_PRN232_FE.Pages
 {
-    private readonly IHttpClientFactory _httpFactory;
-
-    public LoginModel(IHttpClientFactory httpFactory)
+    public class LoginModel : PageModel
     {
-        _httpFactory = httpFactory;
-    }
+        private readonly IApiService _apiService;
 
-    [BindProperty]
-    public InputModel Input { get; set; } = new();
-
-    public string? ErrorMessage { get; set; }
-
-    public void OnGet()
-    {
-    }
-
-    public async Task<IActionResult> OnPostAsync()
-    {
-        if (!ModelState.IsValid) return Page();
-
-        var client = _httpFactory.CreateClient();
-        var res = await client.PostAsJsonAsync("https://localhost:7215/api/account/login", new { Email = Input.Email, Password = Input.Password });
-        if (!res.IsSuccessStatusCode)
+        public LoginModel(IApiService apiService)
         {
-            ErrorMessage = "Invalid credentials";
-            return Page();
+            _apiService = apiService;
         }
 
-        var payload = await res.Content.ReadFromJsonAsync<LoginResponse>();
-        if (payload?.token == null)
+        [BindProperty]
+        public LoginViewModel LoginData { get; set; } = new LoginViewModel();
+
+        public string? ErrorMessage { get; set; }
+
+        public void OnGet()
         {
-            ErrorMessage = "Invalid response from server";
-            return Page();
+            // Clear any existing session
+            HttpContext.Session.Clear();
+            _apiService.ClearAuthToken();
         }
 
-        // Parse JWT token to extract claims
-        var handler = new JwtSecurityTokenHandler();
-        var jsonToken = handler.ReadJwtToken(payload.token);
-        var roleClaim = jsonToken.Claims.FirstOrDefault(x => x.Type == "role")?.Value;
-        var userIdClaim = jsonToken.Claims.FirstOrDefault(x => x.Type == "id")?.Value;
-        var nameClaim = jsonToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Name)?.Value;
+        public async Task<IActionResult> OnPostAsync()
+        {
+            if (!ModelState.IsValid)
+            {
+                return Page();
+            }
 
-        // Store token and user info in session
-        HttpContext.Session.SetString("auth_token", payload.token);
-        HttpContext.Session.SetString("auth_role", roleClaim ?? "");
-        HttpContext.Session.SetString("auth_user_id", userIdClaim ?? "");
-        HttpContext.Session.SetString("auth_user_name", nameClaim ?? "");
+            try
+            {
+                var response = await _apiService.LoginAsync(LoginData);
+                
+                if (response != null && !string.IsNullOrEmpty(response.Token))
+                {
+                    // Store token and user info in session
+                    HttpContext.Session.SetString("AuthToken", response.Token);
+                    HttpContext.Session.SetString("UserName", response.Account.AccountName ?? "User");
+                    HttpContext.Session.SetString("UserRole", response.Account.AccountRole?.ToString() ?? "Admin");
+                    HttpContext.Session.SetString("UserEmail", response.Account.AccountEmail ?? "");
+                    HttpContext.Session.SetInt32("UserId", response.Account.AccountId);
 
-        return RedirectToPage("/News");
+                    // Set auth token for API service
+                    _apiService.SetAuthToken(response.Token);
+
+                    // Redirect based on user role
+                    return response.Account.AccountRole switch
+                    {
+                        1 => RedirectToPage("/Staff/Dashboard"), // Staff
+                        2 => RedirectToPage("/Staff/Dashboard"), // Lecturer (same access as staff)
+                        _ => RedirectToPage("/Admin/Dashboard")   // Admin
+                    };
+                }
+                else
+                {
+                    ErrorMessage = "Invalid email or password. Please try again.";
+                    ModelState.AddModelError(string.Empty, ErrorMessage);
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "An error occurred while logging in. Please try again later.";
+                ModelState.AddModelError(string.Empty, ErrorMessage);
+            }
+
+            return Page();
+        }
     }
-
-    public class InputModel
-    {
-        [Required]
-        public string Email { get; set; } = string.Empty;
-        [Required]
-        public string Password { get; set; } = string.Empty;
-    }
-
-    private class LoginResponse { public string? token { get; set; } }
 }

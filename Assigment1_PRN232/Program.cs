@@ -1,9 +1,6 @@
-using Assigment1_PRN232_BE.Controllers;
-using Assigment1_PRN232_BE.DTOs;
 using Assigment1_PRN232_BE.Models;
 using Assigment1_PRN232_BE.Repositories;
 using Assigment1_PRN232_BE.Services;
-using Assigment1_PRN232_BE.Mappings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
@@ -16,40 +13,46 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+// Configure OData
+var modelBuilder = new ODataConventionModelBuilder();
+modelBuilder.EntitySet<NewsArticle>("NewsArticles");
+modelBuilder.EntitySet<Category>("Categories");
+modelBuilder.EntitySet<Tag>("Tags");
+
+// Explicitly configure SystemAccount key
+var systemAccountEntity = modelBuilder.EntitySet<SystemAccount>("SystemAccounts");
+systemAccountEntity.EntityType.HasKey(x => x.AccountId);
+
 builder.Services.AddControllers()
+    .AddOData(options =>
+    {
+        options.Select().Filter().OrderBy().Expand().Count().SetMaxTop(100);
+        options.AddRouteComponents("odata", modelBuilder.GetEdmModel());
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.MaxDepth = 64;
-    })
-    .AddOData(options =>
-{
-    var odataBuilder = new ODataConventionModelBuilder();
-    odataBuilder.EntitySet<Category>("Category");
-    odataBuilder.EntitySet<Tag>("Tag");
-    // Configure NewsListDto with proper key
-    odataBuilder.EntityType<NewsListDto>().HasKey(n => n.NewsArticleId);
-    odataBuilder.EntitySet<NewsListDto>("News");
-    options.AddRouteComponents("odata", odataBuilder.GetEdmModel()).Filter().OrderBy().Expand().Select().SetMaxTop(100).Count();
-});
+    });
 
-// Add AutoMapper
-builder.Services.AddAutoMapper(typeof(MappingProfile));
+// Add AutoMapper - Temporarily disabled
+// builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 // DbContext
 builder.Services.AddDbContext<FunewsManagementContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("MyCnn")));
 
-// Repositories and services
-builder.Services.AddScoped<INewsRepository, NewsRepository>();
-builder.Services.AddScoped<INewsService, NewsService>();
+// Register Repository and UnitOfWork
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-builder.Services.AddScoped<ITagRepository, TagRepository>();
-
-// Add services
+// Register All Services
+builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ITagService, TagService>();
+builder.Services.AddScoped<INewsArticleService, NewsArticleService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 
 // JWT Authentication
 var jwtSection = builder.Configuration.GetSection("Jwt");
@@ -94,6 +97,17 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -104,6 +118,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();

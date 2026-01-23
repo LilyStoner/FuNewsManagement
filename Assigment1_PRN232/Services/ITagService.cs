@@ -1,17 +1,18 @@
 using Assigment1_PRN232_BE.Models;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Assigment1_PRN232_BE.Services
 {
     public interface ITagService
     {
-        Task<IEnumerable<Tag>> GetAllAsync();
-        Task<Tag?> GetByIdAsync(int id);
-        Task<IEnumerable<Tag>> SearchAsync(string? search);
-        Task<Tag> CreateAsync(string name, string? note);
-        Task UpdateAsync(int id, string? name, string? note);
-        Task DeleteAsync(int id);
-        Task<bool> IsTagUsedAsync(int id);
+        Task<IEnumerable<Tag>> GetAllTagsAsync();
+        Task<Tag?> GetTagByIdAsync(int id);
+        Task<IEnumerable<Tag>> SearchTagsAsync(string? tagName = null);
+        Task<Tag> CreateTagAsync(Tag tag);
+        Task<Tag> UpdateTagAsync(Tag tag);
+        Task<bool> DeleteTagAsync(int id);
+        Task<bool> CanDeleteTagAsync(int id);
+        Task<IEnumerable<NewsArticle>> GetArticlesByTagAsync(int tagId);
+        Task<bool> IsTagNameExistAsync(string tagName, int? excludeId = null);
+        IQueryable<Tag> GetTagsQueryable();
     }
 }
