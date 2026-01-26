@@ -10,6 +10,7 @@ namespace Assignment1_PRN232_FE.Services
         Task<LoginResponseModel?> LoginAsync(LoginViewModel loginModel);
         Task<List<T>?> GetAsync<T>(string endpoint);
         Task<T?> GetByIdAsync<T>(string endpoint, object id);
+        Task<T?> GetByIdAsync<T>(string endpoint);
         Task<T?> PostAsync<T>(string endpoint, object data);
         Task<T?> PutAsync<T>(string endpoint, object id, object data);
         Task<bool> DeleteAsync(string endpoint, object id);
@@ -35,7 +36,7 @@ namespace Assignment1_PRN232_FE.Services
             };
 
             // Set base address from configuration
-            var baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7001";
+            var baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7215";
             _httpClient.BaseAddress = new Uri(baseUrl);
             _httpClient.DefaultRequestHeaders.Accept.Clear();
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -99,6 +100,25 @@ namespace Assignment1_PRN232_FE.Services
             try
             {
                 var response = await _httpClient.GetAsync($"{endpoint}({id})");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return JsonSerializer.Deserialize<T>(content, _jsonOptions);
+                }
+                
+                return default(T);
+            }
+            catch
+            {
+                return default(T);
+            }
+        }
+        public async Task<T?> GetByIdAsync<T>(string endpoint)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{endpoint}");
                 
                 if (response.IsSuccessStatusCode)
                 {

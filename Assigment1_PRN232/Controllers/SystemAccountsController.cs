@@ -138,53 +138,5 @@ namespace Assigment1_PRN232_BE.Controllers
                 return StatusCode(500, new { message = "An error occurred while deleting the account", error = ex.Message });
             }
         }
-
-        [HttpPost("ChangePassword")]
-        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto changePasswordDto)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            try
-            {
-                // Get current user ID from claims
-                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                if (!short.TryParse(userIdClaim, out short userId))
-                {
-                    return Unauthorized(new { message = "Invalid user identification" });
-                }
-
-                var success = await _accountService.ChangePasswordAsync(userId, 
-                    changePasswordDto.CurrentPassword, changePasswordDto.NewPassword);
-                
-                if (!success)
-                {
-                    return BadRequest(new { message = "Current password is incorrect" });
-                }
-
-                return Ok(new { message = "Password changed successfully" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while changing the password", error = ex.Message });
-            }
-        }
-
-        [HttpGet("Search")]
-        [EnableQuery]
-        public async Task<IActionResult> Search([FromQuery] string? name, [FromQuery] string? email, [FromQuery] int? role)
-        {
-            try
-            {
-                var accounts = await _accountService.SearchAccountsAsync(name, email, role);
-                return Ok(accounts);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while searching accounts", error = ex.Message });
-            }
-        }
     }
 }

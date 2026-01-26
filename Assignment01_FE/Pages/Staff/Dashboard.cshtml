@@ -1,370 +1,43 @@
 @page
 @model Assignment1_PRN232_FE.Pages.Staff.DashboardModel
 @{
-    ViewData["Title"] = "Staff Dashboard";
+    ViewData["Title"] = "Staff Portal";
 }
 
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h1 class="h3 mb-0">@Model.UserRole Dashboard</h1>
-                    <p class="text-muted">Welcome back, @Model.UserName</p>
-                </div>
-                <div class="d-flex gap-2">
-                    @if (Model.UserRole == "Staff")
-                    {
-                        <a href="/Staff/Categories" class="btn btn-primary">
-                            <i class="fas fa-folder me-2"></i>Manage Categories
-                        </a>
-                        <a href="/Staff/Articles" class="btn btn-success">
-                            <i class="fas fa-newspaper me-2"></i>Manage Articles
-                        </a>
-                    }
-                    <a href="/News/Active" class="btn btn-info">
-                        <i class="fas fa-eye me-2"></i>View News
-                    </a>
-                    <a href="/Logout" class="btn btn-outline-secondary">
-                        <i class="fas fa-sign-out-alt me-2"></i>Logout
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Stats -->
-    <div class="row mb-4">
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card bg-gradient-primary text-white shadow">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-uppercase mb-1">My Articles</div>
-                            <div class="h5 mb-0 font-weight-bold" id="myArticles">--</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-newspaper fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card bg-gradient-success text-white shadow">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-uppercase mb-1">Published</div>
-                            <div class="h5 mb-0 font-weight-bold" id="publishedArticles">--</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card bg-gradient-info text-white shadow">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-uppercase mb-1">Draft</div>
-                            <div class="h5 mb-0 font-weight-bold" id="draftArticles">--</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-edit fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card bg-gradient-warning text-white shadow">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-uppercase mb-1">This Month</div>
-                            <div class="h5 mb-0 font-weight-bold" id="monthlyArticles">--</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">My Recent Articles</h6>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="myArticlesTable">
-                            <thead>
-                                <tr>
-                                    <th>Title</th>
-                                    <th>Category</th>
-                                    <th>Status</th>
-                                    <th>Created Date</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="myArticlesBody">
-                                <tr>
-                                    <td colspan="5" class="text-center">Loading...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="text-center mt-3">
-                        @if (Model.UserRole == "Staff")
-                        {
-                            <a href="/Staff/Articles" class="btn btn-primary">View All My Articles</a>
-                            <a href="/Staff/Articles/Create" class="btn btn-success">Create New Article</a>
-                        }
-                        else
-                        {
-                            <a href="/News/Search" class="btn btn-primary">Search All Articles</a>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
-                </div>
-                <div class="card-body">
-                    <div class="list-group list-group-flush">
-                        @if (Model.UserRole == "Staff")
-                        {
-                            <a href="/Staff/Articles/Create" class="list-group-item list-group-item-action">
-                                <i class="fas fa-plus-circle me-2"></i>Create New Article
-                            </a>
-                            <a href="/Staff/Categories" class="list-group-item list-group-item-action">
-                                <i class="fas fa-folder me-2"></i>Manage Categories
-                            </a>
-                            <a href="/Staff/Tags" class="list-group-item list-group-item-action">
-                                <i class="fas fa-tags me-2"></i>Manage Tags
-                            </a>
-                        }
-                        <a href="/News/Active" class="list-group-item list-group-item-action">
-                            <i class="fas fa-eye me-2"></i>View Published News
-                        </a>
-                        <a href="/News/Search" class="list-group-item list-group-item-action">
-                            <i class="fas fa-search me-2"></i>Search Articles
-                        </a>
-                        <a href="/Profile" class="list-group-item list-group-item-action">
-                            <i class="fas fa-user-edit me-2"></i>Edit Profile
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Profile Info -->
+    <div class="row justify-content-center">
+        <div class="col-md-6">
             <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Profile Information</h6>
-                </div>
-                <div class="card-body">
-                    <div class="text-center mb-3">
-                        <div class="avatar-circle mb-2">
-                            <i class="fas fa-user fa-2x"></i>
-                        </div>
-                        <h6 class="font-weight-bold">@Model.UserName</h6>
-                        <p class="text-muted mb-2">@Model.UserRole</p>
+                <div class="card-body text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
-                    <hr>
-                    <div class="row text-center">
-                        <div class="col-6">
-                            <div class="stat-item">
-                                <div class="stat-number" id="profileArticles">--</div>
-                                <div class="stat-label">Articles</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="stat-item">
-                                <div class="stat-number" id="profileViews">--</div>
-                                <div class="stat-label">Views</div>
-                            </div>
-                        </div>
-                    </div>
+                    <h5>Redirecting to your workspace...</h5>
+                    <p class="text-muted">
+                        You're being redirected to the appropriate section based on your role.
+                    </p>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-@section Scripts {
 <script>
-$(document).ready(function() {
-    loadMyArticles();
-    loadMyStats();
-});
-
-function loadMyStats() {
-    // In a real implementation, this would make API calls based on user ID
-    $('#myArticles').text('15');
-    $('#publishedArticles').text('12');
-    $('#draftArticles').text('3');
-    $('#monthlyArticles').text('5');
-    $('#profileArticles').text('15');
-    $('#profileViews').text('2.4K');
-}
-
-function loadMyArticles() {
-    const myArticles = [
-        { 
-            id: 'NEWS202401151234',
-            title: 'Campus Technology Upgrade Initiative', 
-            category: 'Technology', 
-            status: 'Published', 
-            date: '2024-01-15' 
-        },
-        { 
-            id: 'NEWS202401141234',
-            title: 'Student Research Symposium 2024', 
-            category: 'Academic', 
-            status: 'Published', 
-            date: '2024-01-14' 
-        },
-        { 
-            id: 'NEWS202401131234',
-            title: 'New Library Resources Available', 
-            category: 'Resources', 
-            status: 'Draft', 
-            date: '2024-01-13' 
-        },
-        { 
-            id: 'NEWS202401121234',
-            title: 'Faculty Development Workshop', 
-            category: 'Events', 
-            status: 'Published', 
-            date: '2024-01-12' 
-        },
-        { 
-            id: 'NEWS202401111234',
-            title: 'Sustainable Campus Initiative', 
-            category: 'Environment', 
-            status: 'Draft', 
-            date: '2024-01-11' 
-        }
-    ];
-    
-    let tbody = '';
-    myArticles.forEach(article => {
-        const statusBadge = article.status === 'Published' 
-            ? '<span class="badge bg-success">Published</span>'
-            : '<span class="badge bg-secondary">Draft</span>';
-            
-        const actions = `
-            <div class="btn-group" role="group">
-                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editArticle('${article.id}')">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-info" onclick="viewArticle('${article.id}')">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteArticle('${article.id}')">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        `;
-            
-        tbody += `
-            <tr>
-                <td>${article.title}</td>
-                <td>${article.category}</td>
-                <td>${statusBadge}</td>
-                <td>${new Date(article.date).toLocaleDateString()}</td>
-                <td>${actions}</td>
-            </tr>
-        `;
-    });
-    
-    $('#myArticlesBody').html(tbody);
-}
-
-function editArticle(id) {
-    window.location.href = '/Staff/Articles/Edit/' + id;
-}
-
-function viewArticle(id) {
-    window.location.href = '/News/Details/' + id;
-}
-
-function deleteArticle(id) {
-    if (confirm('Are you sure you want to delete this article?')) {
-        // Make DELETE API call
-        console.log('Deleting article:', id);
-    }
-}
+// This script runs if redirect doesn't work for some reason
+setTimeout(function() {
+    window.location.href = '/Staff/Articles';
+}, 2000);
 </script>
-}
 
 <style>
-.bg-gradient-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-.bg-gradient-success { background: linear-gradient(135deg, #56CCF2 0%, #2F80ED 100%); }
-.bg-gradient-info { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-.bg-gradient-warning { background: linear-gradient(135deg, #FFB75E 0%, #ED8F03 100%); }
-
-.avatar-circle {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-    color: white;
-}
-
-.stat-item {
-    padding: 10px 0;
-}
-
-.stat-number {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #667eea;
-}
-
-.stat-label {
-    font-size: 0.85rem;
-    color: #6c757d;
-    text-transform: uppercase;
-    font-weight: 500;
-}
-
 .card {
     border: none;
     border-radius: 15px;
+    margin-top: 10vh;
 }
 
-.card-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 15px 15px 0 0 !important;
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
 }
-
-.list-group-item-action:hover {
-    background-color: #f8f9fa;
-    transform: translateX(5px);
-    transition: all 0.2s ease;
-}
-
-.text-gray-300 { color: rgba(255,255,255,0.8) !important; }
 </style>

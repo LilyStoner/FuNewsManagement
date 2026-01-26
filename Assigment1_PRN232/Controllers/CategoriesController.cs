@@ -126,37 +126,5 @@ namespace Assigment1_PRN232_BE.Controllers
                 return StatusCode(500, new { message = "An error occurred while deleting the category", error = ex.Message });
             }
         }
-
-        [HttpGet("GetActive")]
-        [EnableQuery]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetActive()
-        {
-            try
-            {
-                var activeCategories = await _categoryService.GetActiveCategoriesAsync();
-                return Ok(activeCategories);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while retrieving active categories", error = ex.Message });
-            }
-        }
-
-        [HttpGet("Search")]
-        [EnableQuery]
-        [AllowAnonymous]
-        public async Task<IActionResult> Search([FromQuery] string? name, [FromQuery] string? description)
-        {
-            try
-            {
-                var categories = await _categoryService.SearchCategoriesAsync(name, description);
-                return Ok(categories);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while searching categories", error = ex.Message });
-            }
-        }
     }
 }

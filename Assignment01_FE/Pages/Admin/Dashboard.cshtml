@@ -13,6 +13,9 @@
                     <p class="text-muted">Welcome back, @Model.UserName</p>
                 </div>
                 <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-success" onclick="refreshDashboard()" id="refreshBtn">
+                        <i class="fas fa-sync me-2"></i>Refresh Data
+                    </button>
                     <a href="/Admin/Accounts" class="btn btn-primary">
                         <i class="fas fa-users me-2"></i>Manage Accounts
                     </a>
@@ -27,6 +30,19 @@
         </div>
     </div>
 
+    @if (Model.HasError)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    @Model.ErrorMessage
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>
+        </div>
+    }
+
     <!-- Statistics Cards -->
     <div class="row mb-4">
         <div class="col-lg-3 col-md-6 mb-4">
@@ -35,7 +51,8 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-uppercase mb-1">Total Articles</div>
-                            <div class="h5 mb-0 font-weight-bold" id="totalArticles">--</div>
+                            <div class="h5 mb-0 font-weight-bold" id="totalArticles">@Model.DashboardData.TotalArticles
+                            </div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-newspaper fa-2x text-gray-300"></i>
@@ -51,7 +68,8 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-uppercase mb-1">Active Articles</div>
-                            <div class="h5 mb-0 font-weight-bold" id="activeArticles">--</div>
+                            <div class="h5 mb-0 font-weight-bold" id="activeArticles">@Model.DashboardData.ActiveArticles
+                            </div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-check-circle fa-2x text-gray-300"></i>
@@ -67,7 +85,8 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-uppercase mb-1">Total Categories</div>
-                            <div class="h5 mb-0 font-weight-bold" id="totalCategories">--</div>
+                            <div class="h5 mb-0 font-weight-bold" id="totalCategories">@Model.DashboardData.TotalCategories
+                            </div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-folder fa-2x text-gray-300"></i>
@@ -83,7 +102,8 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-uppercase mb-1">Total Users</div>
-                            <div class="h5 mb-0 font-weight-bold" id="totalAccounts">--</div>
+                            <div class="h5 mb-0 font-weight-bold" id="totalAccounts">@Model.DashboardData.TotalAccounts
+                            </div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-users fa-2x text-gray-300"></i>
@@ -102,24 +122,57 @@
                     <h6 class="m-0 font-weight-bold text-primary">Recent News Articles</h6>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="recentArticlesTable">
-                            <thead>
-                                <tr>
-                                    <th>Title</th>
-                                    <th>Author</th>
-                                    <th>Category</th>
-                                    <th>Status</th>
-                                    <th>Date</th>
-                                </tr>
-                            </thead>
-                            <tbody id="recentArticlesBody">
-                                <tr>
-                                    <td colspan="5" class="text-center">Loading...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    @if (Model.DashboardData.RecentArticles.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="recentArticlesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Author</th>
+                                        <th>Category</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentArticlesBody">
+                                    @foreach (var article in Model.DashboardData.RecentArticles)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <a href="/News/Details/@article.NewsArticleId" class="text-decoration-none">
+                                                    @article.NewsTitle
+                                                </a>
+                                            </td>
+                                            <td>@article.AuthorName</td>
+                                            <td>@article.CategoryName</td>
+                                            <td>
+                                                @if (article.Status == "Active")
+                                                {
+                                                    <span class="badge bg-success">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Draft</span>
+                                                }
+                                            </td>
+                                            <td>@article.CreatedDate?.ToString("MMM dd, yyyy")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-newspaper fa-2x text-muted mb-3"></i>
+                            <p class="text-muted">No recent articles found.</p>
+                            <a href="/Staff/Articles/Create" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus me-2"></i>Create First Article
+                            </a>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -140,11 +193,11 @@
                         <a href="/News/Active" class="list-group-item list-group-item-action">
                             <i class="fas fa-eye me-2"></i>View Active News
                         </a>
-                        <a href="/Categories" class="list-group-item list-group-item-action">
+                        <a href="/Staff/Categories" class="list-group-item list-group-item-action">
                             <i class="fas fa-folder-open me-2"></i>Manage Categories
                         </a>
-                        <a href="/Tags" class="list-group-item list-group-item-action">
-                            <i class="fas fa-tags me-2"></i>Manage Tags
+                        <a href="/News/Search" class="list-group-item list-group-item-action">
+                            <i class="fas fa-search me-2"></i>Search Articles
                         </a>
                     </div>
                 </div>
@@ -158,72 +211,199 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-sm-6">
-                            <p class="mb-2"><strong>Staff Accounts:</strong> <span id="staffCount">--</span></p>
-                            <p class="mb-2"><strong>Lecturer Accounts:</strong> <span id="lecturerCount">--</span></p>
+                            <p class="mb-2"><strong>Staff Accounts:</strong> <span id="staffCount">@Model.DashboardData.StaffAccounts
+                                </span>
+                            </p>
+                            <p class="mb-2"><strong>Lecturer Accounts:</strong> <span id="lecturerCount">@Model.DashboardData.LecturerAccounts
+                                </span>
+                            </p>
                         </div>
                         <div class="col-sm-6">
-                            <p class="mb-2"><strong>Active Categories:</strong> <span id="activeCategories">--</span></p>
-                            <p class="mb-2"><strong>Total Tags:</strong> <span id="totalTags">--</span></p>
+                            <p class="mb-2"><strong>Active Categories:</strong> <span id="activeCategories">@Model.DashboardData.ActiveCategories
+                                </span>
+                            </p>
+                            <p class="mb-2"><strong>Total Tags:</strong> <span id="totalTags">@Model.DashboardData.TotalTags
+                                </span>
+                            </p>
                         </div>
                     </div>
                     <hr>
-                    <p class="mb-0 text-muted"><small>Last updated: <span id="lastUpdated">Just now</span></small></p>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <p class="mb-2"><strong>Draft Articles:</strong> <span class="text-warning">@Model.DashboardData.InactiveArticles
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-sm-6">
+                            @{
+                                var activePercentage = Model.DashboardData.TotalArticles > 0
+                                    ? Math.Round((double)Model.DashboardData.ActiveArticles / Model.DashboardData.TotalArticles * 100, 1)
+                                    : 0;
+                            }
+                            <p class="mb-2"><strong>Active Rate:</strong> <span class="text-success">@activePercentage%</span>
+                            </p>
+                        </div>
+                    </div>
+                    <hr>
+                    <p class="mb-0 text-muted">
+                        <small>Last updated: <span id="lastUpdated">@DateTime.Now.ToString("MMM dd, yyyy HH:mm")
+                            </span></small>
+                    </p>
                 </div>
             </div>
         </div>
     </div>
+
+    @if (Model.DashboardData.MonthlyStats != null && Model.DashboardData.MonthlyStats.MonthlyStatistics.Any())
+    {
+        <!-- Monthly Statistics Chart -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Monthly Article Statistics (@Model.DashboardData.MonthlyStats.Year)
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="monthlyChart" width="400" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 $(document).ready(function() {
-    loadDashboardData();
+    // Initialize chart if data is available
+    @if (Model.DashboardData.MonthlyStats != null && Model.DashboardData.MonthlyStats.MonthlyStatistics.Any())
+    {
+        <text>
+        var monthlyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DashboardData.MonthlyStats.MonthlyStatistics));
+        initializeMonthlyChart(monthlyData);
+        </text>
+    }
 });
 
-function loadDashboardData() {
-    // In a real implementation, this would make an API call
-    // For now, we'll use static data as placeholder
-    
-    $('#totalArticles').text('127');
-    $('#activeArticles').text('98');
-    $('#totalCategories').text('15');
-    $('#totalAccounts').text('23');
-    $('#staffCount').text('15');
-    $('#lecturerCount').text('8');
-    $('#activeCategories').text('12');
-    $('#totalTags').text('45');
-    
-    // Load recent articles
-    loadRecentArticles();
+function refreshDashboard() {
+    const refreshBtn = $('#refreshBtn');
+    refreshBtn.prop('disabled', true);
+    refreshBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>Refreshing...');
+
+    $.get('/Admin/Dashboard?handler=RefreshData')
+        .done(function(response) {
+            if (response.success) {
+                updateDashboardData(response.data);
+                showSuccessMessage('Dashboard data refreshed successfully');
+            } else {
+                showErrorMessage('Failed to refresh dashboard: ' + response.error);
+            }
+        })
+        .fail(function() {
+            showErrorMessage('Error connecting to server');
+        })
+        .always(function() {
+            refreshBtn.prop('disabled', false);
+            refreshBtn.html('<i class="fas fa-sync me-2"></i>Refresh Data');
+            $('#lastUpdated').text(new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+        });
 }
 
-function loadRecentArticles() {
-    const recentArticles = [
-        { title: 'University Announces New Research Center', author: 'John Doe', category: 'Research', status: 'Active', date: '2024-01-15' },
-        { title: 'Student Achievement Awards Ceremony', author: 'Jane Smith', category: 'Events', status: 'Active', date: '2024-01-14' },
-        { title: 'New Course Offerings for Spring 2024', author: 'Bob Johnson', category: 'Academic', status: 'Active', date: '2024-01-13' },
-        { title: 'Campus Infrastructure Updates', author: 'Alice Brown', category: 'Infrastructure', status: 'Draft', date: '2024-01-12' },
-        { title: 'International Partnership Agreement', author: 'Mike Wilson', category: 'Partnerships', status: 'Active', date: '2024-01-11' }
-    ];
-    
+function updateDashboardData(data) {
+    $('#totalArticles').text(data.totalArticles);
+    $('#activeArticles').text(data.activeArticles);
+    $('#totalCategories').text(data.totalCategories);
+    $('#totalAccounts').text(data.totalAccounts);
+    $('#staffCount').text(data.staffAccounts);
+    $('#lecturerCount').text(data.lecturerAccounts);
+    $('#activeCategories').text(data.activeCategories);
+    $('#totalTags').text(data.totalTags);
+
+    // Update recent articles table
+    if (data.recentArticles && data.recentArticles.length > 0) {
+        updateRecentArticlesTable(data.recentArticles);
+    }
+}
+
+function updateRecentArticlesTable(articles) {
     let tbody = '';
-    recentArticles.forEach(article => {
-        const statusBadge = article.status === 'Active' 
+    articles.forEach(article => {
+        const statusBadge = article.status === 'Active'
             ? '<span class="badge bg-success">Active</span>'
             : '<span class="badge bg-secondary">Draft</span>';
-            
+
         tbody += `
             <tr>
-                <td>${article.title}</td>
-                <td>${article.author}</td>
-                <td>${article.category}</td>
+                <td><a href="/News/Details/${article.newsArticleId}" class="text-decoration-none">${article.newsTitle}</a></td>
+                <td>${article.authorName || 'Unknown'}</td>
+                <td>${article.categoryName || 'Uncategorized'}</td>
                 <td>${statusBadge}</td>
-                <td>${new Date(article.date).toLocaleDateString()}</td>
+                <td>${new Date(article.createdDate).toLocaleDateString()}</td>
             </tr>
         `;
     });
-    
+
     $('#recentArticlesBody').html(tbody);
+}
+
+function initializeMonthlyChart(monthlyData) {
+    const ctx = document.getElementById('monthlyChart').getContext('2d');
+
+    const labels = monthlyData.map(item => item.monthName);
+    const activeData = monthlyData.map(item => item.activeArticles);
+    const inactiveData = monthlyData.map(item => item.inactiveArticles);
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Active Articles',
+                data: activeData,
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.1
+            }, {
+                label: 'Draft Articles',
+                data: inactiveData,
+                borderColor: '#ffc107',
+                backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function showSuccessMessage(message) {
+    const alertHtml = `
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    $('.container-fluid').prepend(alertHtml);
+    setTimeout(() => $('.alert-success').fadeOut(), 3000);
+}
+
+function showErrorMessage(message) {
+    const alertHtml = `
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    $('.container-fluid').prepend(alertHtml);
+    setTimeout(() => $('.alert-danger').fadeOut(), 5000);
 }
 </script>
 }
@@ -251,5 +431,30 @@ function loadRecentArticles() {
     background-color: #f8f9fa;
     transform: translateX(5px);
     transition: all 0.2s ease;
+}
+
+.alert {
+    border-radius: 15px;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+    border-radius: 10px;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.badge {
+    font-size: 0.75rem;
+    border-radius: 6px;
 }
 </style>

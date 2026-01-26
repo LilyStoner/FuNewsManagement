@@ -7,7 +7,6 @@ namespace Assigment1_PRN232_BE.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Policy = "AdminOnly")]
     public class ReportsController : ControllerBase
     {
         private readonly IReportService _reportService;

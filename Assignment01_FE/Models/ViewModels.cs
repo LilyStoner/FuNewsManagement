@@ -80,4 +80,98 @@ namespace Assignment1_PRN232_FE.Models
         public string ReportType { get; set; } = string.Empty;
         public DateTime GeneratedAt { get; set; } = DateTime.Now;
     }
+
+    // Pagination Models
+    public class PaginatedResult<T>
+    {
+        public List<T> Items { get; set; } = new List<T>();
+        public int TotalItems { get; set; }
+        public int TotalPages { get; set; }
+        public int CurrentPage { get; set; }
+        public int PageSize { get; set; }
+        public bool HasPreviousPage => CurrentPage > 1;
+        public bool HasNextPage => CurrentPage < TotalPages;
+        public int PreviousPage => HasPreviousPage ? CurrentPage - 1 : 1;
+        public int NextPage => HasNextPage ? CurrentPage + 1 : TotalPages;
+    }
+
+    public class PaginationInfo
+    {
+        public int CurrentPage { get; set; } = 1;
+        public int TotalPages { get; set; }
+        public int TotalItems { get; set; }
+        public int PageSize { get; set; } = 9; // 3x3 grid
+        public bool HasPreviousPage => CurrentPage > 1;
+        public bool HasNextPage => CurrentPage < TotalPages;
+        public int StartItem => (CurrentPage - 1) * PageSize + 1;
+        public int EndItem => Math.Min(CurrentPage * PageSize, TotalItems);
+
+        public List<int> GetPageNumbers()
+        {
+            var pages = new List<int>();
+            var start = Math.Max(1, CurrentPage - 2);
+            var end = Math.Min(TotalPages, CurrentPage + 2);
+
+            for (int i = start; i <= end; i++)
+            {
+                pages.Add(i);
+            }
+
+            return pages;
+        }
+    }
+
+    // Dashboard Models
+    public class DashboardStatisticsModel
+    {
+        public int TotalArticles { get; set; }
+        public int ActiveArticles { get; set; }
+        public int InactiveArticles { get; set; }
+        public int TotalCategories { get; set; }
+        public int ActiveCategories { get; set; }
+        public int TotalAccounts { get; set; }
+        public int StaffAccounts { get; set; }
+        public int LecturerAccounts { get; set; }
+        public int TotalTags { get; set; }
+        public List<RecentArticleModel> RecentArticles { get; set; } = new List<RecentArticleModel>();
+        public MonthlyStatsModel? MonthlyStats { get; set; }
+    }
+
+    public class RecentArticleModel
+    {
+        public string NewsArticleId { get; set; } = string.Empty;
+        public string? NewsTitle { get; set; }
+        public DateTime? CreatedDate { get; set; }
+        public string? CategoryName { get; set; }
+        public string? AuthorName { get; set; }
+        public string Status { get; set; } = string.Empty;
+    }
+
+    public class MonthlyStatsModel
+    {
+        public int Year { get; set; }
+        public List<MonthlyStatistic> MonthlyStatistics { get; set; } = new List<MonthlyStatistic>();
+        public int YearTotal { get; set; }
+        public int YearActive { get; set; }
+        public int YearInactive { get; set; }
+    }
+
+    public class MonthlyStatistic
+    {
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public string MonthName { get; set; } = string.Empty;
+        public int TotalArticles { get; set; }
+        public int ActiveArticles { get; set; }
+        public int InactiveArticles { get; set; }
+    }
+
+    // Staff Dashboard Models
+    public class StaffDashboardStatisticsModel
+    {
+        public int MyTotalArticles { get; set; }
+        public int MyActiveArticles { get; set; }
+        public int MyInactiveArticles { get; set; }
+        public List<RecentArticleModel> MyRecentArticles { get; set; } = new List<RecentArticleModel>();
+    }
 }

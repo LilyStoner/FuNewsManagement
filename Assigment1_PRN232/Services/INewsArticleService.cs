@@ -23,5 +23,19 @@ namespace Assigment1_PRN232_BE.Services
         Task<IEnumerable<NewsArticle>> GetRelatedNewsAsync(string articleId, int limit = 3);
         string GenerateNewsArticleId();
         IQueryable<NewsArticle> GetNewsArticlesQueryable();
+        
+        // New methods for summary data (without full content)
+        Task<IEnumerable<NewsArticle>> GetActiveNewsArticlesSummaryAsync();
+        Task<IEnumerable<NewsArticle>> GetNewsArticlesByAuthorSummaryAsync(short authorId);
+        Task<IEnumerable<NewsArticle>> GetNewsArticlesByCategorySummaryAsync(short categoryId);
+        Task<IEnumerable<NewsArticle>> GetRelatedNewsSummaryAsync(string articleId, int limit = 3);
+        Task<IEnumerable<NewsArticle>> SearchNewsArticlesSummaryAsync(
+            string? title = null, 
+            string? authorName = null, 
+            string? categoryName = null, 
+            bool? status = null,
+            DateTime? startDate = null,
+            DateTime? endDate = null);
+        IQueryable<NewsArticle> GetNewsArticlesSummaryQueryable();
     }
 }

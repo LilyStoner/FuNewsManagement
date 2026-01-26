@@ -49,12 +49,12 @@ namespace Assignment1_PRN232_FE.Pages
                     // Set auth token for API service
                     _apiService.SetAuthToken(response.Token);
 
-                    // Redirect based on user role
+                    // Redirect based on user role according to project requirements
                     return response.Account.AccountRole switch
                     {
-                        1 => RedirectToPage("/Staff/Dashboard"), // Staff
-                        2 => RedirectToPage("/Staff/Dashboard"), // Lecturer (same access as staff)
-                        _ => RedirectToPage("/Admin/Dashboard")   // Admin
+                        1 => RedirectToPage("/Staff/Articles/Index"), // Staff - go directly to articles management
+                        2 => RedirectToPage("/News/Active"),          // Lecturer - can only read and search articles
+                        _ => RedirectToPage("/Admin/Dashboard")        // Admin - has dashboard access
                     };
                 }
                 else

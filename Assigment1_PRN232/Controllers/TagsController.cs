@@ -141,37 +141,5 @@ namespace Assigment1_PRN232_BE.Controllers
                 return StatusCode(500, new { message = "An error occurred while deleting the tag", error = ex.Message });
             }
         }
-
-        [HttpGet("Search")]
-        [EnableQuery]
-        [AllowAnonymous]
-        public async Task<IActionResult> Search([FromQuery] string? tagName)
-        {
-            try
-            {
-                var tags = await _tagService.SearchTagsAsync(tagName);
-                return Ok(tags);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while searching tags", error = ex.Message });
-            }
-        }
-
-        [HttpGet("GetArticlesByTag")]
-        [EnableQuery]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetArticlesByTag([FromQuery] int tagId)
-        {
-            try
-            {
-                var articles = await _tagService.GetArticlesByTagAsync(tagId);
-                return Ok(articles);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while retrieving articles by tag", error = ex.Message });
-            }
-        }
     }
 }

@@ -1,6 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
+
 using Microsoft.AspNetCore.Authorization;
 using Assigment1_PRN232_BE.Models;
 using Assigment1_PRN232_BE.Services;
@@ -127,45 +128,6 @@ namespace Assigment1_PRN232_BE.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An error occurred while deleting the news article", error = ex.Message });
-            }
-        }
-
-        [HttpGet("GetActive")]
-        [EnableQuery]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetActive()
-        {
-            try
-            {
-                var activeArticles = await _newsArticleService.GetActiveNewsArticlesAsync();
-                return Ok(activeArticles);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while retrieving active news articles", error = ex.Message });
-            }
-        }
-
-        [HttpGet("Search")]
-        [EnableQuery]
-        [AllowAnonymous]
-        public async Task<IActionResult> Search(
-            [FromQuery] string? title,
-            [FromQuery] string? authorName,
-            [FromQuery] string? categoryName,
-            [FromQuery] bool? status,
-            [FromQuery] DateTime? startDate,
-            [FromQuery] DateTime? endDate)
-        {
-            try
-            {
-                var articles = await _newsArticleService.SearchNewsArticlesAsync(
-                    title, authorName, categoryName, status, startDate, endDate);
-                return Ok(articles);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while searching news articles", error = ex.Message });
             }
         }
     }

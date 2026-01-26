@@ -264,5 +264,211 @@ namespace Assigment1_PRN232_BE.Services
                 .Include(n => n.CreatedBy)
                 .Include(n => n.Tags);
         }
+
+        // Summary methods - exclude NewsContent to reduce payload size
+        public async Task<IEnumerable<NewsArticle>> GetActiveNewsArticlesSummaryAsync()
+        {
+            return await _unitOfWork.NewsArticleRepository.Query()
+                .Where(n => n.NewsStatus == true)
+                .Include(n => n.Category)
+                .Include(n => n.CreatedBy)
+                .Include(n => n.Tags)
+                .Select(n => new NewsArticle
+                {
+                    NewsArticleId = n.NewsArticleId,
+                    NewsTitle = n.NewsTitle,
+                    Headline = n.Headline,
+                    NewsSource = n.NewsSource,
+                    CategoryId = n.CategoryId,
+                    NewsStatus = n.NewsStatus,
+                    CreatedById = n.CreatedById,
+                    CreatedDate = n.CreatedDate,
+                    ModifiedDate = n.ModifiedDate,
+                    UpdatedById = n.UpdatedById,
+                    Category = n.Category,
+                    CreatedBy = n.CreatedBy,
+                    Tags = n.Tags
+                    // NewsContent is intentionally excluded
+                })
+                .OrderByDescending(n => n.CreatedDate)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<NewsArticle>> GetNewsArticlesByAuthorSummaryAsync(short authorId)
+        {
+            return await _unitOfWork.NewsArticleRepository.Query()
+                .Where(n => n.CreatedById == authorId)
+                .Include(n => n.Category)
+                .Include(n => n.CreatedBy)
+                .Include(n => n.Tags)
+                .Select(n => new NewsArticle
+                {
+                    NewsArticleId = n.NewsArticleId,
+                    NewsTitle = n.NewsTitle,
+                    Headline = n.Headline,
+                    NewsSource = n.NewsSource,
+                    CategoryId = n.CategoryId,
+                    NewsStatus = n.NewsStatus,
+                    CreatedById = n.CreatedById,
+                    CreatedDate = n.CreatedDate,
+                    ModifiedDate = n.ModifiedDate,
+                    UpdatedById = n.UpdatedById,
+                    Category = n.Category,
+                    CreatedBy = n.CreatedBy,
+                    Tags = n.Tags
+                })
+                .OrderByDescending(n => n.CreatedDate)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<NewsArticle>> GetNewsArticlesByCategorySummaryAsync(short categoryId)
+        {
+            return await _unitOfWork.NewsArticleRepository.Query()
+                .Where(n => n.CategoryId == categoryId)
+                .Include(n => n.Category)
+                .Include(n => n.CreatedBy)
+                .Include(n => n.Tags)
+                .Select(n => new NewsArticle
+                {
+                    NewsArticleId = n.NewsArticleId,
+                    NewsTitle = n.NewsTitle,
+                    Headline = n.Headline,
+                    NewsSource = n.NewsSource,
+                    CategoryId = n.CategoryId,
+                    NewsStatus = n.NewsStatus,
+                    CreatedById = n.CreatedById,
+                    CreatedDate = n.CreatedDate,
+                    ModifiedDate = n.ModifiedDate,
+                    UpdatedById = n.UpdatedById,
+                    Category = n.Category,
+                    CreatedBy = n.CreatedBy,
+                    Tags = n.Tags
+                })
+                .OrderByDescending(n => n.CreatedDate)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<NewsArticle>> GetRelatedNewsSummaryAsync(string articleId, int limit = 3)
+        {
+            var currentArticle = await GetNewsArticleByIdAsync(articleId);
+            if (currentArticle == null)
+            {
+                return new List<NewsArticle>();
+            }
+
+            return await _unitOfWork.NewsArticleRepository.Query()
+                .Where(n => n.CategoryId == currentArticle.CategoryId && 
+                           n.NewsArticleId != articleId && 
+                           n.NewsStatus == true)
+                .Include(n => n.Category)
+                .Include(n => n.CreatedBy)
+                .Include(n => n.Tags)
+                .Select(n => new NewsArticle
+                {
+                    NewsArticleId = n.NewsArticleId,
+                    NewsTitle = n.NewsTitle,
+                    Headline = n.Headline,
+                    NewsSource = n.NewsSource,
+                    CategoryId = n.CategoryId,
+                    NewsStatus = n.NewsStatus,
+                    CreatedById = n.CreatedById,
+                    CreatedDate = n.CreatedDate,
+                    ModifiedDate = n.ModifiedDate,
+                    UpdatedById = n.UpdatedById,
+                    Category = n.Category,
+                    CreatedBy = n.CreatedBy,
+                    Tags = n.Tags
+                })
+                .Take(limit)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<NewsArticle>> SearchNewsArticlesSummaryAsync(
+            string? title = null, 
+            string? authorName = null, 
+            string? categoryName = null, 
+            bool? status = null,
+            DateTime? startDate = null,
+            DateTime? endDate = null)
+        {
+            IQueryable<NewsArticle> query = _unitOfWork.NewsArticleRepository.Query()
+                .Include(n => n.Category)
+                .Include(n => n.CreatedBy)
+                .Include(n => n.Tags);
+
+            if (!string.IsNullOrEmpty(title))
+            {
+                query = query.Where(n => n.NewsTitle!.Contains(title));
+            }
+
+            if (!string.IsNullOrEmpty(authorName))
+            {
+                query = query.Where(n => n.CreatedBy!.AccountName!.Contains(authorName));
+            }
+
+            if (!string.IsNullOrEmpty(categoryName))
+            {
+                query = query.Where(n => n.Category!.CategoryName!.Contains(categoryName));
+            }
+
+            if (status.HasValue)
+            {
+                query = query.Where(n => n.NewsStatus == status);
+            }
+
+            if (startDate.HasValue)
+            {
+                query = query.Where(n => n.CreatedDate >= startDate);
+            }
+
+            if (endDate.HasValue)
+            {
+                query = query.Where(n => n.CreatedDate <= endDate);
+            }
+
+            return await query
+                .Select(n => new NewsArticle
+                {
+                    NewsArticleId = n.NewsArticleId,
+                    NewsTitle = n.NewsTitle,
+                    Headline = n.Headline,
+                    NewsSource = n.NewsSource,
+                    CategoryId = n.CategoryId,
+                    NewsStatus = n.NewsStatus,
+                    CreatedById = n.CreatedById,
+                    CreatedDate = n.CreatedDate,
+                    ModifiedDate = n.ModifiedDate,
+                    UpdatedById = n.UpdatedById,
+                    Category = n.Category,
+                    CreatedBy = n.CreatedBy,
+                    Tags = n.Tags
+                })
+                .OrderByDescending(n => n.CreatedDate)
+                .ToListAsync();
+        }
+
+        public IQueryable<NewsArticle> GetNewsArticlesSummaryQueryable()
+        {
+            return _unitOfWork.NewsArticleRepository.Query()
+                .Include(n => n.Category)
+                .Include(n => n.CreatedBy)
+                .Include(n => n.Tags)
+                .Select(n => new NewsArticle
+                {
+                    NewsArticleId = n.NewsArticleId,
+                    NewsTitle = n.NewsTitle,
+                    Headline = n.Headline,
+                    NewsSource = n.NewsSource,
+                    CategoryId = n.CategoryId,
+                    NewsStatus = n.NewsStatus,
+                    CreatedById = n.CreatedById,
+                    CreatedDate = n.CreatedDate,
+                    ModifiedDate = n.ModifiedDate,
+                    UpdatedById = n.UpdatedById,
+                    Category = n.Category,
+                    CreatedBy = n.CreatedBy,
+                    Tags = n.Tags
+                });
+        }
     }
 }
