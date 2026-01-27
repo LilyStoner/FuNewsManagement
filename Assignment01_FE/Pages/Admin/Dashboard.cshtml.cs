@@ -83,11 +83,11 @@ namespace Assignment1_PRN232_FE.Pages.Admin
 
             try
             {
-                var dashboardResponse = await _apiService.GetAsync<DashboardStatisticsModel>("/api/Reports/Dashboard");
+                var dashboardResponse = await _apiService.GetByIdAsync<DashboardStatisticsModel>("/api/Reports/Dashboard");
                 
-                if (dashboardResponse != null && dashboardResponse.Any())
+                if (dashboardResponse != null )
                 {
-                    return new JsonResult(new { success = true, data = dashboardResponse.First() });
+                    return new JsonResult(new { success = true, data = dashboardResponse });
                 }
                 else
                 {

@@ -174,4 +174,58 @@ namespace Assignment1_PRN232_FE.Models
         public int MyInactiveArticles { get; set; }
         public List<RecentArticleModel> MyRecentArticles { get; set; } = new List<RecentArticleModel>();
     }
+
+    // Reports Models
+    public class ReportDashboardModel
+    {
+        public int TotalArticles { get; set; }
+        public int PublishedArticles { get; set; }
+        public int DraftArticles { get; set; }
+        public int TotalCategories { get; set; }
+        public int TotalAccounts { get; set; }
+        public int TotalTags { get; set; }
+    }
+
+    public class CategoryReportModel
+    {
+        public PeriodModel Period { get; set; } = new PeriodModel();
+        public List<CategoryStatisticModel> CategoryStatistics { get; set; } = new List<CategoryStatisticModel>();
+    }
+
+    public class AuthorReportModel
+    {
+        public PeriodModel Period { get; set; } = new PeriodModel();
+        public List<AuthorStatisticModel> AuthorStatistics { get; set; } = new List<AuthorStatisticModel>();
+    }
+
+    public class PeriodModel
+    {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+    }
+
+    public class CategoryStatisticModel
+    {
+        public int CategoryId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public int TotalArticles { get; set; }
+        public int ActiveArticles { get; set; }
+        public int InactiveArticles { get; set; }
+        public DateTime? LatestArticle { get; set; }
+        public double Percentage { get; set; }
+    }
+
+    public class AuthorStatisticModel
+    {
+        public int AuthorId { get; set; }
+        public string AuthorName { get; set; } = string.Empty;
+        public string AuthorEmail { get; set; } = string.Empty;
+        public int TotalArticles { get; set; }
+        public int ActiveArticles { get; set; }
+        public int InactiveArticles { get; set; }
+        public DateTime? LatestArticle { get; set; }
+        public DateTime? FirstArticle { get; set; }
+        public int Role => 1; // Default to Staff for display
+        public string LastArticleDate => LatestArticle?.ToString("MMM dd, yyyy") ?? "Never";
+    }
 }

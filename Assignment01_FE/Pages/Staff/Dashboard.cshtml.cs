@@ -17,10 +17,10 @@ namespace Assignment1_PRN232_FE.Pages.Staff
             }
 
             // According to project requirements, Staff doesn't need a dashboard
-            // Redirect Staff directly to their articles management page
+            // Redirect Staff directly to their main work area - News Articles Management
             if (userRole == "1") // Staff
             {
-                return RedirectToPage("/Staff/Articles/Index");
+                return RedirectToPage("/Staff/NewsArticles/Index");
             }
             else if (userRole == "2") // Lecturer
             {

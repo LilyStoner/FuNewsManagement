@@ -52,9 +52,9 @@ namespace Assignment1_PRN232_FE.Pages
                     // Redirect based on user role according to project requirements
                     return response.Account.AccountRole switch
                     {
-                        1 => RedirectToPage("/Staff/Articles/Index"), // Staff - go directly to articles management
-                        2 => RedirectToPage("/News/Active"),          // Lecturer - can only read and search articles
-                        _ => RedirectToPage("/Admin/Dashboard")        // Admin - has dashboard access
+                        1 => RedirectToPage("/Staff/NewsArticles/Index"), // Staff - go to All News Articles Management
+                        2 => RedirectToPage("/News/Active"),              // Lecturer - can only read and search articles
+                        _ => RedirectToPage("/Admin/Dashboard")           // Admin - has dashboard access
                     };
                 }
                 else
