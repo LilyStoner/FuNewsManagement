@@ -114,6 +114,7 @@ namespace Assignment1_PRN232_FE.Services
                 return default(T);
             }
         }
+        
         public async Task<T?> GetByIdAsync<T>(string endpoint)
         {
             try
@@ -164,18 +165,32 @@ namespace Assignment1_PRN232_FE.Services
                 var json = JsonSerializer.Serialize(data, _jsonOptions);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PutAsync($"{endpoint}({id})", content);
+                var url = $"{endpoint}({id})";
+                Console.WriteLine($"============== API PUT REQUEST ==============");
+                Console.WriteLine($"URL: {url}");
+                Console.WriteLine($"Data: {json}");
+                Console.WriteLine($"Auth Header: {_httpClient.DefaultRequestHeaders.Authorization?.ToString() ?? "NULL"}");
+
+                var response = await _httpClient.PutAsync(url, content);
+                
+                Console.WriteLine($"Response Status: {response.StatusCode}");
+                var responseContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Response Content: {responseContent}");
+                Console.WriteLine($"=============================================");
                 
                 if (response.IsSuccessStatusCode)
                 {
-                    var responseContent = await response.Content.ReadAsStringAsync();
                     return JsonSerializer.Deserialize<T>(responseContent, _jsonOptions);
                 }
-                
-                return default(T);
+                else
+                {
+                    Console.WriteLine($"? PUT request failed with status {response.StatusCode}");
+                    return default(T);
+                }
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"? PUT request exception: {ex.Message}");
                 return default(T);
             }
         }

@@ -192,10 +192,7 @@
                                                             data-bs-toggle="modal" data-bs-target="#editAccountModal" title="Edit">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
-                                                    <a href="/Admin/Accounts/Details/@account.AccountId" 
-                                                       class="btn btn-sm btn-outline-info" title="View Details">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
+
                                                     @if (account.ArticleCount == 0)
                                                     {
                                                         <form method="post" style="display: inline;" asp-page-handler="Delete" 

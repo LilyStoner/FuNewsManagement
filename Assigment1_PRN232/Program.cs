@@ -1,11 +1,13 @@
-using Assigment1_PRN232_BE.Models;
+﻿using Assigment1_PRN232_BE.Models;
 using Assigment1_PRN232_BE.Repositories;
 using Assigment1_PRN232_BE.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OData.ModelBuilder;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -83,14 +85,14 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Authorization policies
+// Authorization policies - Use ClaimTypes.Role for consistency
 builder.Services.AddAuthorization(options =>
 {
     // StaffOnly: allow Staff (1) or Admin
-    options.AddPolicy("StaffOnly", policy => policy.RequireClaim("role", "1", "Admin"));
+    options.AddPolicy("StaffOnly", policy => policy.RequireClaim(ClaimTypes.Role, "1", "Admin"));
     // LecturerOrAbove: allow Lecturer (2), Staff (1) or Admin
-    options.AddPolicy("LecturerOrAbove", policy => policy.RequireClaim("role", "2", "1", "Admin"));
-    options.AddPolicy("AdminOnly", policy => policy.RequireClaim("role", "Admin"));
+    options.AddPolicy("LecturerOrAbove", policy => policy.RequireClaim(ClaimTypes.Role, "2", "1", "Admin"));
+    options.AddPolicy("AdminOnly", policy => policy.RequireClaim(ClaimTypes.Role, "Admin"));
 });
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -119,9 +121,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors();
+app.UseCors("MyCors");
 
+// Critical: Authentication MUST come before custom middleware
 app.UseAuthentication();
+
 app.UseAuthorization();
 
 app.MapControllers();
