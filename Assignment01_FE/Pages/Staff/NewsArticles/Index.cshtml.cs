@@ -14,13 +14,12 @@ namespace Assignment1_PRN232_FE.Pages.Staff.NewsArticles
             _apiService = apiService;
         }
 
-        public PaginatedResult<NewsArticleModel> PaginatedArticles { get; set; } = new PaginatedResult<NewsArticleModel>();
         public List<NewsArticleModel> NewsArticles { get; set; } = new List<NewsArticleModel>();
         public List<CategoryModel> Categories { get; set; } = new List<CategoryModel>();
         public PaginationInfo Pagination { get; set; } = new PaginationInfo();
 
         [BindProperty(SupportsGet = true)]
-        public string SearchTerm { get; set; } = string.Empty;
+        public string? SearchTerm { get; set; }
         
         [BindProperty(SupportsGet = true)]
         public short? CategoryFilter { get; set; }
@@ -29,7 +28,7 @@ namespace Assignment1_PRN232_FE.Pages.Staff.NewsArticles
         public bool? StatusFilter { get; set; }
         
         [BindProperty(SupportsGet = true)]
-        public string AuthorFilter { get; set; } = string.Empty;
+        public string? AuthorFilter { get; set; }
         
         [BindProperty(SupportsGet = true)]
         public DateTime? StartDate { get; set; }
@@ -49,14 +48,12 @@ namespace Assignment1_PRN232_FE.Pages.Staff.NewsArticles
         [BindProperty(SupportsGet = true)]
         public int PageSize { get; set; } = 10;
 
-        // Statistics
         public int TotalArticles { get; set; }
         public int ActiveArticles { get; set; }
         public int DraftArticles { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
         {
-            // Check if user is logged in and is staff
             var token = HttpContext.Session.GetString("AuthToken");
             var userRole = HttpContext.Session.GetString("UserRole");
             
@@ -65,12 +62,12 @@ namespace Assignment1_PRN232_FE.Pages.Staff.NewsArticles
                 return RedirectToPage("/Login");
             }
 
-            if (userRole != "1") // Only Staff can manage all news articles
+            if (userRole != "1")
             {
-                return RedirectToPage("/Access/Denied");
+                TempData["ErrorMessage"] = "Access denied. Only Staff can manage news articles.";
+                return RedirectToPage("/Index");
             }
 
-            // Validate pagination parameters
             if (CurrentPage < 1) CurrentPage = 1;
             if (PageSize < 1) PageSize = 10;
             if (PageSize > 50) PageSize = 50;
@@ -79,11 +76,9 @@ namespace Assignment1_PRN232_FE.Pages.Staff.NewsArticles
 
             try
             {
-                // Load categories for filtering
                 var categoriesResponse = await _apiService.GetAsync<CategoryModel>("/odata/Categories");
                 Categories = categoriesResponse?.Where(c => c.IsActive == true).ToList() ?? new List<CategoryModel>();
 
-                // Build OData query
                 var query = BuildODataQuery();
                 var articlesResponse = await _apiService.GetAsync<NewsArticleModel>($"/odata/NewsArticles{query}");
                 
@@ -91,36 +86,21 @@ namespace Assignment1_PRN232_FE.Pages.Staff.NewsArticles
                 {
                     var allFilteredArticles = articlesResponse.ToList();
                     
-                    // Calculate statistics
                     TotalArticles = allFilteredArticles.Count;
                     ActiveArticles = allFilteredArticles.Count(a => a.NewsStatus == true);
                     DraftArticles = allFilteredArticles.Count(a => a.NewsStatus != true);
 
-                    // Apply pagination
                     var totalPages = (int)Math.Ceiling((double)TotalArticles / PageSize);
                     if (CurrentPage > totalPages && totalPages > 0)
                     {
                         CurrentPage = totalPages;
                     }
 
-                    var pagedArticles = allFilteredArticles
+                    NewsArticles = allFilteredArticles
                         .Skip((CurrentPage - 1) * PageSize)
                         .Take(PageSize)
                         .ToList();
 
-                    // Set up pagination result
-                    PaginatedArticles = new PaginatedResult<NewsArticleModel>
-                    {
-                        Items = pagedArticles,
-                        TotalItems = TotalArticles,
-                        TotalPages = totalPages,
-                        CurrentPage = CurrentPage,
-                        PageSize = PageSize
-                    };
-
-                    NewsArticles = pagedArticles;
-
-                    // Set up pagination info
                     Pagination = new PaginationInfo
                     {
                         CurrentPage = CurrentPage,
@@ -133,9 +113,6 @@ namespace Assignment1_PRN232_FE.Pages.Staff.NewsArticles
             catch (Exception ex)
             {
                 TempData["ErrorMessage"] = $"Error loading articles: {ex.Message}";
-                NewsArticles = new List<NewsArticleModel>();
-                PaginatedArticles = new PaginatedResult<NewsArticleModel>();
-                Pagination = new PaginationInfo();
             }
 
             return Page();
@@ -146,7 +123,6 @@ namespace Assignment1_PRN232_FE.Pages.Staff.NewsArticles
             var filters = new List<string>();
             var queryParts = new List<string>();
 
-            // Apply filters
             if (!string.IsNullOrEmpty(SearchTerm))
             {
                 filters.Add($"(contains(tolower(NewsTitle), '{SearchTerm.ToLower()}') or contains(tolower(NewsContent), '{SearchTerm.ToLower()}') or contains(tolower(Headline), '{SearchTerm.ToLower()}'))");
@@ -177,15 +153,13 @@ namespace Assignment1_PRN232_FE.Pages.Staff.NewsArticles
                 filters.Add($"CreatedDate le {EndDate:yyyy-MM-dd}T23:59:59Z");
             }
 
-            // Build query
-            queryParts.Add("$expand=Category,CreatedBy,UpdatedBy");
+            queryParts.Add("$expand=Category,CreatedBy,Tags");
 
             if (filters.Any())
             {
                 queryParts.Add($"$filter={string.Join(" and ", filters)}");
             }
 
-            // Add sorting
             var orderBy = SortBy switch
             {
                 "NewsTitle" => "NewsTitle",
@@ -207,41 +181,122 @@ namespace Assignment1_PRN232_FE.Pages.Staff.NewsArticles
             
             if (string.IsNullOrEmpty(token) || userRole != "1")
             {
-                return RedirectToPage("/Access/Denied");
+                TempData["ErrorMessage"] = "Access denied.";
+                return RedirectToPage();
             }
 
             _apiService.SetAuthToken(token);
 
             try
             {
-                var success = await _apiService.DeleteAsync("/api/NewsArticles", articleId);
+                var success = await _apiService.DeleteAsync("/odata/NewsArticles", $"'{articleId}'");
                 if (success)
                 {
-                    TempData["SuccessMessage"] = "Article deleted successfully!";
+                    TempData["SuccessMessage"] = "Article deleted successfully! Related tags have been removed.";
                 }
                 else
                 {
-                    TempData["ErrorMessage"] = "Failed to delete article. Please try again.";
+                    TempData["ErrorMessage"] = "Failed to delete article.";
                 }
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = $"Error deleting article: {ex.Message}";
+                TempData["ErrorMessage"] = $"Error: {ex.Message}";
             }
 
-            return RedirectToPage("./Index", new 
-            { 
-                searchTerm = SearchTerm,
-                categoryFilter = CategoryFilter,
-                statusFilter = StatusFilter,
-                authorFilter = AuthorFilter,
-                startDate = StartDate?.ToString("yyyy-MM-dd"),
-                endDate = EndDate?.ToString("yyyy-MM-dd"),
-                sortBy = SortBy,
-                sortOrder = SortOrder,
-                currentPage = CurrentPage,
-                pageSize = PageSize
-            });
+            return RedirectToPage(new { searchTerm = SearchTerm, categoryFilter = CategoryFilter, statusFilter = StatusFilter, authorFilter = AuthorFilter, startDate = StartDate?.ToString("yyyy-MM-dd"), endDate = EndDate?.ToString("yyyy-MM-dd"), sortBy = SortBy, sortOrder = SortOrder, currentPage = CurrentPage, pageSize = PageSize });
+        }
+
+        public async Task<IActionResult> OnPostToggleStatusAsync(string articleId, bool currentStatus)
+        {
+            var token = HttpContext.Session.GetString("AuthToken");
+            var userRole = HttpContext.Session.GetString("UserRole");
+            
+            if (string.IsNullOrEmpty(token) || userRole != "1")
+            {
+                TempData["ErrorMessage"] = "Access denied.";
+                return RedirectToPage();
+            }
+
+            _apiService.SetAuthToken(token);
+
+            try
+            {
+                var articlesResponse = await _apiService.GetByIdAsync<NewsArticleModel>($"/odata/NewsArticles", $"'{articleId}'", "?$expand=Tags");
+                var article = articlesResponse;
+                
+                if (article == null)
+                {
+                    TempData["ErrorMessage"] = "Article not found.";
+                    return RedirectToPage();
+                }
+
+                // Toggle status while preserving all other data including tags
+                var updateData = new
+                {
+                    NewsTitle = article.NewsTitle,
+                    Headline = article.Headline,
+                    NewsContent = article.NewsContent,
+                    NewsSource = article.NewsSource,
+                    CategoryId = article.CategoryId,
+                    NewsStatus = !currentStatus,
+                    TagIds = article.Tags?.Select(t => t.TagId).ToList() ?? new List<int>()
+                };
+
+                var result = await _apiService.PutAsync<NewsArticleModel>("/odata/NewsArticles", $"'{articleId}'", updateData);
+                
+                if (result != null)
+                {
+                    TempData["SuccessMessage"] = currentStatus 
+                        ? "Article unpublished successfully!" 
+                        : "Article published successfully!";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "Failed to update article status.";
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error: {ex.Message}";
+            }
+
+            return RedirectToPage(new { searchTerm = SearchTerm, categoryFilter = CategoryFilter, statusFilter = StatusFilter, authorFilter = AuthorFilter, startDate = StartDate?.ToString("yyyy-MM-dd"), endDate = EndDate?.ToString("yyyy-MM-dd"), sortBy = SortBy, sortOrder = SortOrder, currentPage = CurrentPage, pageSize = PageSize });
+        }
+
+        public async Task<IActionResult> OnPostDuplicateAsync(string articleId)
+        {
+            var token = HttpContext.Session.GetString("AuthToken");
+            var userRole = HttpContext.Session.GetString("UserRole");
+            
+            if (string.IsNullOrEmpty(token) || userRole != "1")
+            {
+                TempData["ErrorMessage"] = "Access denied.";
+                return RedirectToPage();
+            }
+
+            _apiService.SetAuthToken(token);
+
+            try
+            {
+                var duplicateData = new { ArticleId = articleId };
+                var result = await _apiService.PostAsync<object>("/odata/NewsArticlesFunctions/Duplicate", duplicateData);
+                
+                if (result != null)
+                {
+                    TempData["SuccessMessage"] = "Article duplicated successfully! The copy has been created as a draft.";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "Failed to duplicate article.";
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error duplicating article: {ex.Message}";
+            }
+
+            return RedirectToPage(new { searchTerm = SearchTerm, categoryFilter = CategoryFilter, statusFilter = StatusFilter, authorFilter = AuthorFilter, startDate = StartDate?.ToString("yyyy-MM-dd"), endDate = EndDate?.ToString("yyyy-MM-dd"), sortBy = SortBy, sortOrder = SortOrder, currentPage = CurrentPage, pageSize = PageSize });
         }
 
         public string GetPageUrl(int pageNumber)

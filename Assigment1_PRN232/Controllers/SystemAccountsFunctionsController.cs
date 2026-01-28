@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
 using Microsoft.AspNetCore.Authorization;
@@ -9,7 +9,8 @@ using Assigment1_PRN232_BE.DTOs;
 namespace Assigment1_PRN232_BE.Controllers
 {
     [Route("odata/[controller]")]
-    [Authorize(Policy = "AdminOnly")]
+    [ApiController]
+
     public class SystemAccountsFunctionsController : ODataController
     {
         private readonly IAccountService _accountService;
@@ -18,7 +19,7 @@ namespace Assigment1_PRN232_BE.Controllers
         {
             _accountService = accountService;
         }
-
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet("Search")]
         [EnableQuery]
         public async Task<IActionResult> Search([FromQuery] string? name, [FromQuery] string? email, [FromQuery] int? role)
@@ -35,6 +36,7 @@ namespace Assigment1_PRN232_BE.Controllers
         }
 
         [HttpPost("ChangePassword")]
+        [Authorize(Policy = "LecturerOrAbove")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto changePasswordDto)
         {
             if (!ModelState.IsValid)
@@ -44,7 +46,6 @@ namespace Assigment1_PRN232_BE.Controllers
 
             try
             {
-                // Get current user ID from claims
                 var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 if (!short.TryParse(userIdClaim, out short userId))
                 {

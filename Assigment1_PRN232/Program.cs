@@ -47,6 +47,7 @@ builder.Services.AddDbContext<FunewsManagementContext>(options =>
 // Register Repository and UnitOfWork
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+;
 
 // Register All Services
 builder.Services.AddScoped<IAccountService, AccountService>();
@@ -81,7 +82,30 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = audience,
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = signingKey,
-        ValidateLifetime = true
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.FromMinutes(5),
+        NameClaimType = ClaimTypes.Name,
+        RoleClaimType = ClaimTypes.Role
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = context =>
+        {
+            // Transform the role claim to use standard ClaimTypes.Role
+            var identity = context.Principal.Identity as ClaimsIdentity;
+            if (identity != null)
+            {
+                var roleClaim = identity.FindFirst("role");
+                if (roleClaim != null && roleClaim.Type != ClaimTypes.Role)
+                {
+                    identity.RemoveClaim(roleClaim);
+                    identity.AddClaim(new Claim(ClaimTypes.Role, roleClaim.Value));
+                }
+            }
+            
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -123,9 +147,7 @@ app.UseHttpsRedirection();
 
 app.UseCors("MyCors");
 
-// Critical: Authentication MUST come before custom middleware
 app.UseAuthentication();
-
 app.UseAuthorization();
 
 app.MapControllers();

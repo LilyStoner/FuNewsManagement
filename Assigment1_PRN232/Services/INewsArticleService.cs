@@ -13,9 +13,9 @@ namespace Assigment1_PRN232_BE.Services
         Task<NewsArticle> UpdateNewsArticleAsync(NewsArticle article, IEnumerable<int>? tagIds = null);
         Task<bool> DeleteNewsArticleAsync(string id);
         Task<IEnumerable<NewsArticle>> SearchNewsArticlesAsync(
-            string? title = null, 
-            string? authorName = null, 
-            string? categoryName = null, 
+            string? title = null,
+            string? authorName = null,
+            string? categoryName = null,
             bool? status = null,
             DateTime? startDate = null,
             DateTime? endDate = null);
@@ -24,15 +24,15 @@ namespace Assigment1_PRN232_BE.Services
         string GenerateNewsArticleId();
         IQueryable<NewsArticle> GetNewsArticlesQueryable();
         
-        // New methods for summary data (without full content)
+        // Summary methods without NewsContent
         Task<IEnumerable<NewsArticle>> GetActiveNewsArticlesSummaryAsync();
         Task<IEnumerable<NewsArticle>> GetNewsArticlesByAuthorSummaryAsync(short authorId);
         Task<IEnumerable<NewsArticle>> GetNewsArticlesByCategorySummaryAsync(short categoryId);
         Task<IEnumerable<NewsArticle>> GetRelatedNewsSummaryAsync(string articleId, int limit = 3);
         Task<IEnumerable<NewsArticle>> SearchNewsArticlesSummaryAsync(
-            string? title = null, 
-            string? authorName = null, 
-            string? categoryName = null, 
+            string? title = null,
+            string? authorName = null,
+            string? categoryName = null,
             bool? status = null,
             DateTime? startDate = null,
             DateTime? endDate = null);

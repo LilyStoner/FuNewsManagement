@@ -9,6 +9,7 @@ namespace Assignment1_PRN232_FE.Services
     {
         Task<LoginResponseModel?> LoginAsync(LoginViewModel loginModel);
         Task<List<T>?> GetAsync<T>(string endpoint);
+        Task<T?> GetByIdAsync<T>(string endpoint, object id, string query);
         Task<T?> GetByIdAsync<T>(string endpoint, object id);
         Task<T?> GetByIdAsync<T>(string endpoint);
         Task<T?> PostAsync<T>(string endpoint, object data);
@@ -94,22 +95,54 @@ namespace Assignment1_PRN232_FE.Services
                 return null;
             }
         }
+        public async Task<T?> GetByIdAsync<T>(string endpoint, object id, string query)
+        {
+            try
+            {
+                var url = $"{endpoint}({id}){query}";
+                var response = await _httpClient.GetAsync(url);
 
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+
+                    if (string.IsNullOrWhiteSpace(content))
+                    {
+                        return default(T);
+                    }
+
+                    return JsonSerializer.Deserialize<T>(content, _jsonOptions);
+                }
+
+                return default(T);
+            }
+            catch (Exception)
+            {
+                return default(T);
+            }
+        }
         public async Task<T?> GetByIdAsync<T>(string endpoint, object id)
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{endpoint}({id})");
+                var url = $"{endpoint}({id})";
+                var response = await _httpClient.GetAsync(url);
                 
                 if (response.IsSuccessStatusCode)
                 {
                     var content = await response.Content.ReadAsStringAsync();
+                    
+                    if (string.IsNullOrWhiteSpace(content))
+                    {
+                        return default(T);
+                    }
+                    
                     return JsonSerializer.Deserialize<T>(content, _jsonOptions);
                 }
                 
                 return default(T);
             }
-            catch
+            catch (Exception)
             {
                 return default(T);
             }
@@ -164,33 +197,20 @@ namespace Assignment1_PRN232_FE.Services
             {
                 var json = JsonSerializer.Serialize(data, _jsonOptions);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-
                 var url = $"{endpoint}({id})";
-                Console.WriteLine($"============== API PUT REQUEST ==============");
-                Console.WriteLine($"URL: {url}");
-                Console.WriteLine($"Data: {json}");
-                Console.WriteLine($"Auth Header: {_httpClient.DefaultRequestHeaders.Authorization?.ToString() ?? "NULL"}");
 
                 var response = await _httpClient.PutAsync(url, content);
                 
-                Console.WriteLine($"Response Status: {response.StatusCode}");
-                var responseContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Response Content: {responseContent}");
-                Console.WriteLine($"=============================================");
-                
                 if (response.IsSuccessStatusCode)
                 {
+                    var responseContent = await response.Content.ReadAsStringAsync();
                     return JsonSerializer.Deserialize<T>(responseContent, _jsonOptions);
                 }
-                else
-                {
-                    Console.WriteLine($"? PUT request failed with status {response.StatusCode}");
-                    return default(T);
-                }
+                
+                return default(T);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"? PUT request exception: {ex.Message}");
                 return default(T);
             }
         }

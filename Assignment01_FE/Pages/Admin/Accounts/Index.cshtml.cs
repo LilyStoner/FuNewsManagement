@@ -157,13 +157,6 @@ namespace Assignment1_PRN232_FE.Pages.Admin.Accounts
 
         public async Task<IActionResult> OnPostUpdateAsync(short AccountId, string AccountName, string AccountEmail, int AccountRole)
         {
-            Console.WriteLine($"=== UPDATE ACCOUNT REQUEST ===");
-            Console.WriteLine($"AccountId: {AccountId}");
-            Console.WriteLine($"AccountName: {AccountName}");
-            Console.WriteLine($"AccountEmail: {AccountEmail}");
-            Console.WriteLine($"AccountRole: {AccountRole}");
-
-            // Validate input
             if (string.IsNullOrEmpty(AccountName) || string.IsNullOrEmpty(AccountEmail))
             {
                 TempData["ErrorMessage"] = "Account name and email are required.";
@@ -188,25 +181,20 @@ namespace Assignment1_PRN232_FE.Pages.Admin.Accounts
                     AccountRole = AccountRole
                 };
 
-                Console.WriteLine($"Calling PUT /odata/SystemAccounts({AccountId}) with data: {System.Text.Json.JsonSerializer.Serialize(updateData)}");
-
                 var result = await _apiService.PutAsync<SystemAccountModel>("/odata/SystemAccounts", AccountId, updateData);
 
                 if (result != null)
                 {
                     TempData["SuccessMessage"] = "Account updated successfully!";
-                    Console.WriteLine("? Account updated successfully");
                 }
                 else
                 {
                     TempData["ErrorMessage"] = "Failed to update account. Email might already exist.";
-                    Console.WriteLine("? Account update failed - result is null");
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"? Account update exception: {ex.Message}");
-                TempData["ErrorMessage"] = $"An error occurred while updating the account: {ex.Message}";
+                TempData["ErrorMessage"] = "An error occurred while updating the account.";
             }
 
             return RedirectToPage();

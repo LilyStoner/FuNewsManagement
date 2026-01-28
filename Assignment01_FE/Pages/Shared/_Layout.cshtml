@@ -143,13 +143,30 @@
                                         }
                                     </h6></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="/Profile">
-                                        <i class="fas fa-user-edit me-2"></i>Profile
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="/Profile/ChangePassword">
-                                        <i class="fas fa-key me-2"></i>Change Password
-                                    </a></li>
-                                    <li><hr class="dropdown-divider"></li>
+                                    
+                                    @* Staff can access full Profile (update info + change password) *@
+                                    @if (userRole == "1")
+                                    {
+                                        <li><a class="dropdown-item" href="/Profile">
+                                            <i class="fas fa-user-edit me-2"></i>Profile
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="/Profile/ChangePassword">
+                                            <i class="fas fa-key me-2"></i>Change Password
+                                        </a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    }
+                                    
+                                    @* Lecturer can only change password *@
+                                    @if (userRole == "2")
+                                    {
+                                        <li><a class="dropdown-item" href="/Profile/ChangePassword">
+                                            <i class="fas fa-key me-2"></i>Change Password
+                                        </a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    }
+                                    
+                                    @* Admin has no profile/password options *@
+                                    
                                     <li><a class="dropdown-item" href="/Logout">
                                         <i class="fas fa-sign-out-alt me-2"></i>Logout
                                     </a></li>

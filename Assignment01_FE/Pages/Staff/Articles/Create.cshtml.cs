@@ -65,22 +65,23 @@ namespace Assignment1_PRN232_FE.Pages.Staff.Articles
                 var token = HttpContext.Session.GetString("AuthToken");
                 _apiService.SetAuthToken(token!);
 
-                // Create NewsArticle object
-                var newArticle = new NewsArticleModel
+                // Create article with tags
+                var createData = new
                 {
                     NewsTitle = Article.NewsTitle,
                     Headline = Article.Headline,
                     NewsContent = Article.NewsContent,
                     NewsSource = Article.NewsSource,
                     CategoryId = Article.CategoryId,
-                    NewsStatus = Article.NewsStatus
+                    NewsStatus = Article.NewsStatus,
+                    TagIds = Article.SelectedTagIds
                 };
 
-                var result = await _apiService.PostAsync<NewsArticleModel>("/odata/NewsArticles", newArticle);
+                var result = await _apiService.PostAsync<object>("/odata/NewsArticles", createData);
 
                 if (result != null)
                 {
-                    TempData["SuccessMessage"] = "Article created successfully!";
+                    TempData["SuccessMessage"] = "Article created successfully! CreatedById has been set automatically.";
                     return RedirectToPage("/Staff/Articles/Index");
                 }
                 else
@@ -90,7 +91,7 @@ namespace Assignment1_PRN232_FE.Pages.Staff.Articles
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, "An error occurred while creating the article.");
+                ModelState.AddModelError(string.Empty, $"An error occurred: {ex.Message}");
             }
 
             await LoadDropdownDataAsync();
@@ -137,7 +138,7 @@ namespace Assignment1_PRN232_FE.Pages.Staff.Articles
         [Required(ErrorMessage = "Category is required")]
         public short CategoryId { get; set; }
         
-        public bool? NewsStatus { get; set; } = true;
+        public bool NewsStatus { get; set; } = true;
         
         public List<int> SelectedTagIds { get; set; } = new List<int>();
     }

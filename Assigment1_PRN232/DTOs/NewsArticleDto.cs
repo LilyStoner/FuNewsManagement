@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Assigment1_PRN232_FE.DTOs
+namespace Assigment1_PRN232_BE.DTOs
 {
     public class NewsArticleDto
     {
