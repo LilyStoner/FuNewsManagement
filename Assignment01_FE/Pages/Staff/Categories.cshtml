@@ -280,7 +280,7 @@
                         <label asp-for="CreateCategory.ParentCategoryId" class="form-label">Parent Category</label>
                         <select asp-for="CreateCategory.ParentCategoryId" class="form-select">
                             <option value="">None (Main Category)</option>
-                            @foreach (var category in Model.Categories.Where(c => c.ParentCategoryId == null && c.IsActive == true))
+                            @foreach (var category in Model.Categories.Where(c => c.IsActive == true))
                             {
                                 <option value="@category.CategoryId">@category.CategoryName</option>
                             }
@@ -329,7 +329,7 @@
                         <label class="form-label">Parent Category</label>
                         <select id="editParentCategoryId" name="ParentCategoryId" class="form-select">
                             <option value="">None (Main Category)</option>
-                            @foreach (var category in Model.Categories.Where(c => c.ParentCategoryId == null && c.IsActive == true))
+                            @foreach (var category in Model.Categories.Where(c => c.IsActive == true))
                             {
                                 <option value="@category.CategoryId">@category.CategoryName</option>
                             }

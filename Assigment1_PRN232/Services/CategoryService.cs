@@ -58,32 +58,23 @@ namespace Assigment1_PRN232_BE.Services
 
         public async Task<Category> CreateCategoryAsync(Category category)
         {
-            // Validate required fields
             if (string.IsNullOrEmpty(category.CategoryName))
-            {
                 throw new ArgumentException("Category name is required");
-            }
 
             if (string.IsNullOrEmpty(category.CategoryDesciption))
-            {
                 throw new ArgumentException("Category description is required");
-            }
 
-            // Check for duplicate name
             if (await IsCategoryNameExistAsync(category.CategoryName))
-            {
                 throw new InvalidOperationException("Category name already exists");
-            }
 
-            // Generate new ID
-            var allCategories = await _unitOfWork.CategoryRepository.GetAllAsync();
-            category.CategoryId = (short)(allCategories.Any() ? allCategories.Max(c => c.CategoryId) + 1 : 1);
-
+            // Remove the manual ID generation - let the database handle it
+            category.CategoryId = 0; // Reset to default
+            
             await _unitOfWork.CategoryRepository.AddAsync(category);
             await _unitOfWork.SaveChangesAsync();
 
-            return category;
-        }
+               return category;
+           }
 
         public async Task<Category> UpdateCategoryAsync(Category category)
         {

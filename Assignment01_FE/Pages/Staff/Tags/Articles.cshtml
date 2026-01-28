@@ -1,0 +1,271 @@
+@page "{id:int}"
+@model Assignment1_PRN232_FE.Pages.Staff.Tags.ArticlesModel
+@{
+    ViewData["Title"] = $"Articles using #{Model.Tag?.TagName}";
+}
+
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/Staff/Articles">My Articles</a></li>
+                    <li class="breadcrumb-item"><a href="/Staff/Tags">Tags</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@Model.Tag?.TagName</li>
+                </ol>
+            </nav>
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">
+                        Articles using 
+                        <span class="badge bg-secondary">@Model.Tag?.TagName</span>
+                    </h1>
+                    @if (!string.IsNullOrEmpty(Model.Tag?.Note))
+                    {
+                        <p class="text-muted">@Model.Tag.Note</p>
+                    }
+                </div>
+                <div>
+                    <a href="/Staff/Tags" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Tags
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Statistics Card -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-gradient-info text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h6 class="text-uppercase text-white-50 mb-1">Total Articles</h6>
+                            <h3 class="mb-0">@Model.Articles.Count</h3>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-newspaper fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-gradient-success text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h6 class="text-uppercase text-white-50 mb-1">Published</h6>
+                            <h3 class="mb-0">@Model.Articles.Count(a => a.NewsStatus == true)</h3>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-gradient-warning text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h6 class="text-uppercase text-white-50 mb-1">Draft</h6>
+                            <h3 class="mb-0">@Model.Articles.Count(a => a.NewsStatus != true)</h3>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-alt fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Articles Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        Articles (@Model.Articles.Count)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.Articles.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Category</th>
+                                        <th>Author</th>
+                                        <th>Status</th>
+                                        <th>Created Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var article in Model.Articles)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@article.NewsTitle</strong>
+                                                @if (!string.IsNullOrEmpty(article.Headline))
+                                                {
+                                                    <br />
+                                                    <small class="text-muted">@article.Headline</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(article.CategoryName))
+                                                {
+                                                    <span class="badge bg-info">@article.CategoryName</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Uncategorized</span>
+                                                }
+                                            </td>
+                                            <td>@article.CreatedByName</td>
+                                            <td>
+                                                @if (article.NewsStatus == true)
+                                                {
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check me-1"></i>Published
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning">
+                                                        <i class="fas fa-file-alt me-1"></i>Draft
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <small>@article.CreatedDate?.ToString("MMM dd, yyyy")</small>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <a href="/News/Details/@article.NewsArticleId" 
+                                                       class="btn btn-sm btn-outline-info" 
+                                                       title="View Details" 
+                                                       target="_blank">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a href="/Staff/Articles/Edit/@article.NewsArticleId" 
+                                                       class="btn btn-sm btn-outline-primary" 
+                                                       title="Edit Article">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <form method="post" style="display: inline;" 
+                                                          asp-page-handler="RemoveTag" 
+                                                          asp-route-tagId="@Model.Tag!.TagId" 
+                                                          asp-route-articleId="@article.NewsArticleId">
+                                                        <button type="submit" 
+                                                                class="btn btn-sm btn-outline-danger" 
+                                                                title="Remove this tag from article"
+                                                                onclick="return confirm('Remove this tag from the article?')">
+                                                            <i class="fas fa-unlink"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-newspaper fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Articles Found</h5>
+                            <p class="text-muted">This tag is not currently used by any articles.</p>
+                            <div class="mt-3">
+                                <a href="/Staff/Tags" class="btn btn-primary">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to Tags
+                                </a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-gradient-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.bg-gradient-success { background: linear-gradient(135deg, #56CCF2 0%, #2F80ED 100%); }
+.bg-gradient-warning { background: linear-gradient(135deg, #FFB75E 0%, #ED8F03 100%); }
+.bg-gradient-info { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.breadcrumb {
+    background: transparent;
+    padding: 0;
+}
+
+.breadcrumb a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.alert {
+    border: none;
+    border-radius: 10px;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.btn-group .btn {
+    margin-right: -1px;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-info:hover,
+.btn-outline-danger:hover {
+    transform: translateY(-1px);
+}
+</style>

@@ -49,12 +49,41 @@ namespace Assignment1_PRN232_FE.Pages.Staff
         {
             try
             {
-                var response = await _apiService.GetAsync<CategoryModel>("/odata/CategoriesFunctions/Active");
-                Categories = response ?? new List<CategoryModel>();
+                string query;
+                if (!string.IsNullOrEmpty(SearchTerm))
+                {
+                    // Search by name or description with NewsArticles count
+                    query = $"/odata/Categories?$filter=contains(tolower(CategoryName), '{SearchTerm.ToLower()}') or contains(tolower(CategoryDesciption), '{SearchTerm.ToLower()}')&$expand=ParentCategory,NewsArticles($select=NewsArticleId)";
+                }
+                else
+                {
+                    // Get all categories with parent info and NewsArticles count
+                    query = "/odata/Categories?$expand=ParentCategory,NewsArticles($select=NewsArticleId)";
+                }
+
+                var response = await _apiService.GetAsync<CategoryWithArticlesModel>(query);
+                Categories = response?.Select(c => new CategoryModel
+                {
+                    CategoryId = c.CategoryId,
+                    CategoryName = c.CategoryName,
+                    CategoryDesciption = c.CategoryDesciption,
+                    ParentCategoryId = c.ParentCategoryId,
+                    IsActive = c.IsActive,
+                    ParentCategoryName = c.ParentCategory?.CategoryName,
+                    ArticleCount = c.NewsArticles?.Count ?? 0
+                }).ToList() ?? new List<CategoryModel>();
+
+                // Calculate statistics
+                TotalCategories = Categories.Count;
+                ActiveCategories = Categories.Count(c => c.IsActive == true);
+                InactiveCategories = Categories.Count(c => c.IsActive != true);
             }
             catch (Exception)
             {
                 Categories = new List<CategoryModel>();
+                TotalCategories = 0;
+                ActiveCategories = 0;
+                InactiveCategories = 0;
             }
         }
 
@@ -128,12 +157,10 @@ namespace Assignment1_PRN232_FE.Pages.Staff
 
             try
             {
-                // Get the category first
                 var category = await _apiService.GetByIdAsync<CategoryModel>("/odata/Categories", id);
                 if (category != null)
                 {
                     var updatedCategory = new {
-                        CategoryId = category.CategoryId,
                         CategoryName = category.CategoryName,
                         CategoryDesciption = category.CategoryDesciption,
                         ParentCategoryId = category.ParentCategoryId,
@@ -159,6 +186,62 @@ namespace Assignment1_PRN232_FE.Pages.Staff
 
             return RedirectToPage();
         }
+
+        public async Task<IActionResult> OnPostUpdateAsync(short CategoryId, string CategoryName, string CategoryDesciption, short? ParentCategoryId, bool IsActive)
+        {
+            if (string.IsNullOrEmpty(CategoryName) || string.IsNullOrEmpty(CategoryDesciption))
+            {
+                TempData["ErrorMessage"] = "Category name and description are required.";
+                return RedirectToPage();
+            }
+
+            var token = HttpContext.Session.GetString("AuthToken");
+            _apiService.SetAuthToken(token!);
+
+            try
+            {
+                // Get current category to check if used by articles
+                var currentCategory = await _apiService.GetByIdAsync<CategoryModel>("/odata/Categories", CategoryId);
+                
+                if (currentCategory == null)
+                {
+                    TempData["ErrorMessage"] = "Category not found.";
+                    return RedirectToPage();
+                }
+
+                // Check if ParentCategoryId is being changed and category has articles
+                if (currentCategory.ParentCategoryId != ParentCategoryId && currentCategory.ArticleCount > 0)
+                {
+                    TempData["ErrorMessage"] = "Cannot change parent category because this category is used by articles.";
+                    return RedirectToPage();
+                }
+
+                var updateData = new
+                {
+                    CategoryName = CategoryName,
+                    CategoryDesciption = CategoryDesciption,
+                    ParentCategoryId = ParentCategoryId > 0 ? ParentCategoryId : null,
+                    IsActive = IsActive
+                };
+
+                var result = await _apiService.PutAsync<CategoryModel>("/odata/Categories", CategoryId, updateData);
+
+                if (result != null)
+                {
+                    TempData["SuccessMessage"] = "Category updated successfully!";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "Failed to update category. Name might already exist.";
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"An error occurred: {ex.Message}";
+            }
+
+            return RedirectToPage();
+        }
     }
 
     public class CategoryCreateModel
@@ -174,5 +257,28 @@ namespace Assignment1_PRN232_FE.Pages.Staff
         public short? ParentCategoryId { get; set; }
         
         public bool IsActive { get; set; } = true;
+    }
+
+    // Helper class to deserialize category with articles
+    public class CategoryWithArticlesModel
+    {
+        public short CategoryId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public string CategoryDesciption { get; set; } = string.Empty;
+        public short? ParentCategoryId { get; set; }
+        public bool? IsActive { get; set; }
+        public CategoryParentModel? ParentCategory { get; set; }
+        public List<ArticleIdModel>? NewsArticles { get; set; }
+    }
+
+    public class CategoryParentModel
+    {
+        public short CategoryId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+    }
+
+    public class ArticleIdModel
+    {
+        public string NewsArticleId { get; set; } = string.Empty;
     }
 }
