@@ -95,6 +95,8 @@ namespace Assignment1_PRN232_FE.Services
                 return null;
             }
         }
+
+
         public async Task<T?> GetByIdAsync<T>(string endpoint, object id, string query)
         {
             try
@@ -121,6 +123,7 @@ namespace Assignment1_PRN232_FE.Services
                 return default(T);
             }
         }
+        
         public async Task<T?> GetByIdAsync<T>(string endpoint, object id)
         {
             try
@@ -245,4 +248,5 @@ namespace Assignment1_PRN232_FE.Services
             public int Count { get; set; }
         }
     }
+
 }

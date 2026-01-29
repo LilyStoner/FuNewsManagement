@@ -155,7 +155,23 @@ namespace Assigment1_PRN232_BE.Services
             IQueryable<NewsArticle> query = _unitOfWork.NewsArticleRepository.Query()
                 .Include(n => n.Category)
                 .Include(n => n.CreatedBy)
-                .Include(n => n.Tags);
+                .Include(n => n.Tags)
+                .Select(n => new NewsArticle
+                {
+                    NewsArticleId = n.NewsArticleId,
+                    NewsTitle = n.NewsTitle,
+                    Headline = n.Headline,
+                    NewsSource = n.NewsSource,
+                    CategoryId = n.CategoryId,
+                    NewsStatus = n.NewsStatus,
+                    CreatedById = n.CreatedById,
+                    CreatedDate = n.CreatedDate,
+                    ModifiedDate = n.ModifiedDate,
+                    UpdatedById = n.UpdatedById,
+                    Category = n.Category,
+                    CreatedBy = n.CreatedBy,
+                    Tags = n.Tags
+                }); ;
 
             if (!string.IsNullOrEmpty(title))
             {

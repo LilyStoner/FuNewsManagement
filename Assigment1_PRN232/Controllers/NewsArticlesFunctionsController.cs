@@ -1,13 +1,15 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Assigment1_PRN232_BE.Services;
+using Microsoft.AspNetCore.OData.Routing.Controllers;
+using Microsoft.AspNetCore.OData.Query;
 
 namespace Assigment1_PRN232_BE.Controllers
 {
     [Route("odata/[controller]")]
     [Authorize(Policy = "StaffOnly")]
     [ApiController]
-    public class NewsArticlesFunctionsController : ControllerBase
+    public class NewsArticlesFunctionsController : ODataController
     {
         private readonly INewsArticleService _newsArticleService;
 
@@ -46,8 +48,28 @@ namespace Assigment1_PRN232_BE.Controllers
             }
         }
 
+        [HttpGet("ActiveSummary")]
+        [AllowAnonymous]
+        [EnableQuery(PageSize = 50, MaxTop = 100)]
+        public IActionResult GetActiveArticlesSummary()
+        {
+            try
+            {
+                var activeArticles = _newsArticleService.GetNewsArticlesSummaryQueryable()
+                    .Where(n => n.NewsStatus == true)
+                    .OrderByDescending(n => n.CreatedDate);
+                
+                return Ok(activeArticles);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while retrieving active articles", error = ex.Message });
+            }
+        }
+
         [HttpGet("Search")]
         [AllowAnonymous]
+        [EnableQuery]
         public async Task<IActionResult> SearchArticles(
             [FromQuery] string? title = null,
             [FromQuery] string? authorName = null,

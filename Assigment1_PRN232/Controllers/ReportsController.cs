@@ -7,13 +7,16 @@ namespace Assigment1_PRN232_BE.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Policy = "AdminOnly")]
     public class ReportsController : ControllerBase
     {
         private readonly IReportService _reportService;
+        private readonly INewsArticleService _newsArticleService;
 
-        public ReportsController(IReportService reportService)
+        public ReportsController(IReportService reportService, INewsArticleService newsArticleService)
         {
             _reportService = reportService;
+            _newsArticleService = newsArticleService;
         }
 
         [HttpGet("Dashboard")]
@@ -163,6 +166,83 @@ namespace Assigment1_PRN232_BE.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An error occurred while retrieving monthly article statistics", error = ex.Message });
+            }
+        }
+
+        [HttpGet("Audit")]
+        public async Task<IActionResult> GetChangeAudit(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] short? updatedById,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            try
+            {
+                // Get all articles with UpdatedBy information
+                var allArticles = await _newsArticleService.GetAllNewsArticlesAsync();
+
+                // Filter articles that have been modified (have UpdatedById and ModifiedDate)
+                var modifiedArticles = allArticles
+                    .Where(a => a.UpdatedById.HasValue && a.ModifiedDate.HasValue)
+                    .AsQueryable();
+
+                // Apply date filters
+                if (startDate.HasValue)
+                {
+                    modifiedArticles = modifiedArticles.Where(a => a.ModifiedDate >= startDate.Value);
+                }
+
+                if (endDate.HasValue)
+                {
+                    modifiedArticles = modifiedArticles.Where(a => a.ModifiedDate <= endDate.Value.AddDays(1).AddSeconds(-1));
+                }
+
+                // Filter by updater
+                if (updatedById.HasValue)
+                {
+                    modifiedArticles = modifiedArticles.Where(a => a.UpdatedById == updatedById.Value);
+                }
+
+                // Order by modified date descending
+                var orderedArticles = modifiedArticles.OrderByDescending(a => a.ModifiedDate).ToList();
+
+                // Calculate pagination
+                var totalItems = orderedArticles.Count;
+                var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+                // Get page items
+                var pagedArticles = orderedArticles
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(a => new
+                    {
+                        a.NewsArticleId,
+                        a.NewsTitle,
+                        a.NewsStatus,
+                        a.CreatedDate,
+                        a.ModifiedDate,
+                        a.CreatedById,
+                        CreatedByName = a.CreatedBy?.AccountName,
+                        a.UpdatedById,
+                        UpdatedByName = a.UpdatedBy?.AccountName,
+                        CategoryName = a.Category?.CategoryName,
+                        a.CategoryId
+                    })
+                    .ToList();
+
+                return Ok(new
+                {
+                    items = pagedArticles,
+                    totalItems,
+                    totalPages,
+                    currentPage = page,
+                    pageSize
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error retrieving audit log", error = ex.Message });
             }
         }
 

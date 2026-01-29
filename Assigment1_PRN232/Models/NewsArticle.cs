@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Assigment1_PRN232_BE.Models;
 
@@ -30,6 +31,9 @@ public partial class NewsArticle
     public virtual Category? Category { get; set; }
 
     public virtual SystemAccount? CreatedBy { get; set; }
+    
+    [ForeignKey("UpdatedById")]
+    public virtual SystemAccount? UpdatedBy { get; set; }
 
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
 }

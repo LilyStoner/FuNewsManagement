@@ -102,7 +102,7 @@ namespace Assignment1_PRN232_FE.Pages.News
                 var searchUrl = "/odata/NewsArticlesFunctions/Search?" + BuildSearchQuery();
                 var searchResponse = await _apiService.GetAsync<NewsArticleModel>(searchUrl);
                 var allResults = searchResponse ?? new List<NewsArticleModel>();
-
+                allResults = allResults.Where(r => r.NewsStatus == true).ToList();
                 // Filter for active articles only (for public users)
                 var token = HttpContext.Session.GetString("AuthToken");
                 if (string.IsNullOrEmpty(token))

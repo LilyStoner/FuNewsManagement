@@ -27,6 +27,8 @@ namespace Assignment1_PRN232_FE.Models
         public string? AccountName { get; set; }
         public string? AccountEmail { get; set; }
         public int? AccountRole { get; set; }
+        public string? AccountPassword { get; set; }
+        
         public string RoleName => AccountRole switch
         {
             1 => "Staff",
@@ -43,6 +45,12 @@ namespace Assignment1_PRN232_FE.Models
         public string CategoryDesciption { get; set; } = string.Empty;
         public short? ParentCategoryId { get; set; }
         public bool? IsActive { get; set; }
+        
+        // Nested objects (for OData expand)
+        public CategoryModel? ParentCategory { get; set; }
+        public List<CategoryModel>? InverseParentCategory { get; set; }
+        
+        // Computed properties
         public string? ParentCategoryName { get; set; }
         public int ArticleCount { get; set; }
     }
@@ -60,10 +68,17 @@ namespace Assignment1_PRN232_FE.Models
         public short? CreatedById { get; set; }
         public short? UpdatedById { get; set; }
         public DateTime? ModifiedDate { get; set; }
+        
+        // Nested objects (for OData expand)
+        public CategoryModel? Category { get; set; }
+        public SystemAccountModel? CreatedBy { get; set; }
+        public SystemAccountModel? UpdatedBy { get; set; }
+        public List<TagModel> Tags { get; set; } = new List<TagModel>();
+        
+        // Computed properties for display (populated by ApiService)
         public string? CategoryName { get; set; }
         public string? CreatedByName { get; set; }
         public string? UpdatedByName { get; set; }
-        public List<TagModel> Tags { get; set; } = new List<TagModel>();
     }
 
     public class TagModel
@@ -79,6 +94,59 @@ namespace Assignment1_PRN232_FE.Models
         public object? Data { get; set; }
         public string ReportType { get; set; } = string.Empty;
         public DateTime GeneratedAt { get; set; } = DateTime.Now;
+    }
+
+    // Audit Models
+    public class AuditLogModel
+    {
+        public string NewsArticleId { get; set; } = string.Empty;
+        public string? NewsTitle { get; set; }
+        public bool? NewsStatus { get; set; }
+        public DateTime? CreatedDate { get; set; }
+        public DateTime? ModifiedDate { get; set; }
+        public short? CreatedById { get; set; }
+        public string? CreatedByName { get; set; }
+        public short? UpdatedById { get; set; }
+        public string? UpdatedByName { get; set; }
+        public string? CategoryName { get; set; }
+        public short? CategoryId { get; set; }
+        
+        public string TimeSinceModified
+        {
+            get
+            {
+                if (!ModifiedDate.HasValue) return "N/A";
+                
+                var timeSpan = DateTime.Now - ModifiedDate.Value;
+                
+                if (timeSpan.TotalDays >= 365)
+                    return $"{(int)(timeSpan.TotalDays / 365)} year(s) ago";
+                if (timeSpan.TotalDays >= 30)
+                    return $"{(int)(timeSpan.TotalDays / 30)} month(s) ago";
+                if (timeSpan.TotalDays >= 1)
+                    return $"{(int)timeSpan.TotalDays} day(s) ago";
+                if (timeSpan.TotalHours >= 1)
+                    return $"{(int)timeSpan.TotalHours} hour(s) ago";
+                if (timeSpan.TotalMinutes >= 1)
+                    return $"{(int)timeSpan.TotalMinutes} minute(s) ago";
+                
+                return "Just now";
+            }
+        }
+        
+        public string StatusBadgeClass => NewsStatus == true ? "bg-success" : "bg-warning";
+        public string StatusText => NewsStatus == true ? "Published" : "Draft";
+    }
+
+    public class AuditReportModel
+    {
+        public List<AuditLogModel> Items { get; set; } = new List<AuditLogModel>();
+        public int TotalItems { get; set; }
+        public int TotalPages { get; set; }
+        public int CurrentPage { get; set; }
+        public int PageSize { get; set; }
+        public bool HasPreviousPage => CurrentPage > 1;
+        public bool HasNextPage => CurrentPage < TotalPages;
     }
 
     // Pagination Models

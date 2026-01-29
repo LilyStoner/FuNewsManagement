@@ -47,8 +47,8 @@ namespace Assignment1_PRN232_FE.Pages.News
                 var categoriesResponse = await _apiService.GetAsync<CategoryModel>("/odata/CategoriesFunctions/Active");
                 Categories = categoriesResponse ?? new List<CategoryModel>();
 
-                // Get active articles using Functions controller
-                var articlesResponse = await _apiService.GetAsync<NewsArticleModel>("/odata/NewsArticlesFunctions/Active");
+                // Get active articles using optimized summary endpoint (without NewsContent)
+                var articlesResponse = await _apiService.GetAsync<NewsArticleModel>("/odata/NewsArticlesFunctions/ActiveSummary");
                 var allArticles = articlesResponse ?? new List<NewsArticleModel>();
 
                 // Apply search and filters
@@ -58,7 +58,6 @@ namespace Assignment1_PRN232_FE.Pages.News
                 {
                     filteredArticles = filteredArticles.Where(a => 
                         a.NewsTitle?.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) == true ||
-                        a.NewsContent?.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) == true ||
                         a.Headline?.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) == true);
                 }
 
