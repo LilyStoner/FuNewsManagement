@@ -205,7 +205,6 @@
                                 <thead>
                                     <tr>
                                         <th>Title</th>
-                                        <th>Author</th>
                                         <th>Category</th>
                                         <th>Tags</th>
                                         <th>Status</th>
@@ -227,16 +226,7 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                <span class="text-muted">@article.CreatedByName</span>
-                                                @if (article.UpdatedById.HasValue && article.ModifiedDate.HasValue)
-                                                {
-                                                    <br><small class="text-info" title="Last updated by User ID @article.UpdatedById">
-                                                        Updated on @article.ModifiedDate?.ToString("MMM dd, yyyy")
-                                                    </small>
-                                                }
-                                            </td>
-                                            <td>
-                                                <span class="badge bg-secondary">@article.CategoryName</span>
+                                                <span class="badge bg-secondary">@article.Category.CategoryName</span>
                                             </td>
                                             <td>
                                                 @if (article.Tags != null && article.Tags.Any())
